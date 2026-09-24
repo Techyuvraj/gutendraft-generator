@@ -21,10 +21,27 @@ export const PROVIDERS = {
         model: 'gpt-4o',
         baseURL: undefined, // SDK default
         placeholder: 'sk-...',
-        keyPattern: /^sk-[A-Za-z0-9_-]{20,}$/,
-        keyHint: 'OpenAI keys start with "sk-".',
+        keyPattern: /^sk-(?!or-)[A-Za-z0-9_-]{20,}$/,
+        keyHint: 'OpenAI keys start with "sk-" (an OpenRouter "sk-or-" key will not work here).',
         consoleUrl: 'https://platform.openai.com/api-keys',
         consoleLabel: 'OpenAI dashboard',
+    },
+    openrouter: {
+        id: 'openrouter',
+        label: 'OpenRouter',
+        model: 'openai/gpt-4o',
+        baseURL: 'https://openrouter.ai/api/v1',
+        placeholder: 'sk-or-v1-...',
+        keyPattern: /^sk-or-[A-Za-z0-9_-]{20,}$/,
+        keyHint: 'OpenRouter keys start with "sk-or-".',
+        consoleUrl: 'https://openrouter.ai/keys',
+        consoleLabel: 'OpenRouter',
+        // OpenRouter attributes traffic to an app via these. Both are ordinary
+        // custom headers, so the browser allows them (unlike a real Referer).
+        // The referer is filled in at request time with the page's true origin.
+        defaultHeaders: {
+            'X-Title': 'GutenDraft',
+        },
     },
 };
 
@@ -95,6 +112,7 @@ export const resolveApiKey = (providerId) => {
     if (import.meta.env.DEV) {
         if (providerId === 'openai') return import.meta.env.VITE_OPENAI_API_KEY || '';
         if (providerId === 'gemini') return import.meta.env.VITE_GEMINI_API_KEY || '';
+        if (providerId === 'openrouter') return import.meta.env.VITE_OPENROUTER_API_KEY || '';
     }
 
     return '';
@@ -113,3 +131,28 @@ export const maskKey = (key) => {
 
 /** Cheap shape check so an obvious paste error is caught before a round trip. */
 export const looksLikeApiKey = (providerId, key) => getProviderConfig(providerId).keyPattern.test(key.trim());
+
+/**
+ * Keys from other services that are easy to paste here by mistake. Naming the
+ * service beats a generic "invalid key", because the provider's own rejection
+ * often never reaches us - OpenAI returns its 401 without CORS headers, so the
+ * browser blocks the body and the SDK reports only a connection failure.
+ */
+const FOREIGN_KEY_PREFIXES = [
+    { prefix: 'sk-or-', service: 'OpenRouter', ownedBy: 'openrouter' },
+    { prefix: 'sk-ant-', service: 'Anthropic' },
+    { prefix: 'gsk_', service: 'Groq' },
+    // Matched against the provider id, not the display label, so a valid
+    // Gemini key is never reported as foreign to the Gemini field.
+    { prefix: 'AIza', service: 'Google Gemini', ownedBy: 'gemini' },
+];
+
+/** Returns the service a key appears to belong to, when it is not this one. */
+export const detectForeignKey = (providerId, key) => {
+    const match = FOREIGN_KEY_PREFIXES.find(f => key.trim().startsWith(f.prefix));
+    if (!match || match.ownedBy === providerId) return null;
+    return match.service;
+};
+
+/** "a Groq key" / "an OpenAI key" — the names here are all initial-sound regular. */
+export const article = (word) => (/^[AEIOU]/i.test(word) ? 'an' : 'a');

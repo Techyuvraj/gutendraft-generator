@@ -11,6 +11,8 @@ import {
     isUsingEnvKey,
     maskKey,
     looksLikeApiKey,
+    detectForeignKey,
+    article,
 } from '../services/apiKey';
 
 const ApiKeySettings = ({ provider, onProviderChange, onKeyChange }) => {
@@ -47,8 +49,13 @@ const ApiKeySettings = ({ provider, onProviderChange, onKeyChange }) => {
             setError('Paste your key first.');
             return;
         }
+        const foreign = detectForeignKey(provider, key);
+        if (foreign) {
+            setError(`That looks like ${article(foreign)} ${foreign} key, not ${article(config.label)} ${config.label} key.`);
+            return;
+        }
         if (!looksLikeApiKey(provider, key)) {
-            setError(`That does not look like a ${config.label} key — ${config.keyHint}`);
+            setError(`That does not look like ${article(config.label)} ${config.label} key — ${config.keyHint}`);
             return;
         }
         if (!storeKey(provider, key)) {

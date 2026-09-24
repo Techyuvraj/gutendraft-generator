@@ -20,9 +20,14 @@ const getClient = (providerId) => {
     const apiKey = resolveApiKey(provider.id);
     if (!apiKey) throw new MissingApiKeyError(provider.label);
 
+    const headers = provider.defaultHeaders
+        ? { ...provider.defaultHeaders, 'HTTP-Referer': window.location.origin }
+        : undefined;
+
     return new OpenAI({
         apiKey,
         baseURL: provider.baseURL,
+        defaultHeaders: headers,
         dangerouslyAllowBrowser: true // The key is the user's own and never leaves their browser except to the provider.
     });
 };
@@ -53,6 +58,17 @@ const describeError = (error, provider) => {
     }
     if (error?.status === 403) {
         return new Error(`This key is not allowed to use ${provider.model}. Check its permissions in your ${name} account.`);
+    }
+    /* No status at all means the fetch itself failed. The common cause is a
+       rejected key: OpenAI serves its 401 without an Access-Control-Allow-Origin
+       header, so the browser discards the body and the SDK sees only a network
+       error. Say that, rather than "Connection error." */
+    if (!error?.status) {
+        return new Error(
+            `Could not reach ${name}. The most likely cause is a rejected API key — ` +
+            `${name} returns that rejection without CORS headers, so the browser hides ` +
+            `the real message. Check the key in the sidebar, then any ad blocker or VPN.`
+        );
     }
     if (error?.status === 404) {
         return new Error(`${name} does not recognise the model ${provider.model}. It may have been retired.`);
