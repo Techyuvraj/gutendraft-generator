@@ -1,11 +1,15 @@
 import React, { useMemo } from 'react';
+import { PREVIEW_STYLESHEETS, PREVIEW_CSS } from '../styles/gutenbergPreview';
+import { applyLayoutClasses } from '../utils/blockLayout';
 
 const BlockPreview = ({ code }) => {
   const htmlContent = useMemo(() => {
     if (!code) return '';
 
-    // Strip comments
-    let html = code.replace(/<!--\s*wp:[\s\S]*?-->/g, '')
+    // Apply the layout classes WordPress would generate server-side, then
+    // strip the comments they came from.
+    let html = applyLayoutClasses(code)
+      .replace(/<!--\s*wp:[\s\S]*?-->/g, '')
       .replace(/<!--\s*\/wp:[\s\S]*?-->/g, '');
 
     const parser = new DOMParser();
@@ -15,20 +19,40 @@ const BlockPreview = ({ code }) => {
     images.forEach((img, index) => {
       const existingSrc = img.getAttribute('src');
       const isAbsoluteUrl = existingSrc && (existingSrc.startsWith('http') || existingSrc.startsWith('data:'));
-      const isPlaceholder = existingSrc && (existingSrc.includes('placeholder') || existingSrc.includes('demo') || existingSrc.includes('image-url'));
+      // "placehold" rather than "placeholder": it catches placehold.co as
+      // well as placeholder.com, and the templates use the former.
+      const isPlaceholder = existingSrc && (existingSrc.includes('placehold') || existingSrc.includes('demo') || existingSrc.includes('image-url'));
+
+      // A cover's background image is positioned by the block stylesheet
+      // (absolute, inset 0, object-fit: cover). Inline height and radius are
+      // author-level styles that beat it, dropping the image back into the
+      // flow and on top of the cover's own content. Leave those alone.
+      const positionedByBlockCss =
+        img.classList.contains('wp-block-cover__image-background') ||
+        Boolean(img.closest('.wp-block-cover'));
 
       if (!existingSrc || !isAbsoluteUrl || isPlaceholder) {
         let width = img.getAttribute('width') || 600;
         let height = img.getAttribute('height') || 400;
-        const text = `Image ${index + 1}`;
-        img.setAttribute('src', `https://placehold.co/${width}x${height}/2563eb/FFF?text=${text}`);
+
+        if (positionedByBlockCss) {
+          // A cover background sits behind real content under a dim overlay.
+          // A labelled placeholder would compete with the heading, so use a
+          // flat swatch and let the cover's own text carry the preview.
+          img.setAttribute('src', `https://placehold.co/${width}x${height}/64748b/64748b`);
+        } else {
+          const text = `Image ${index + 1}`;
+          img.setAttribute('src', `https://placehold.co/${width}x${height}/2563eb/FFF?text=${text}`);
+        }
       }
 
-      img.style.display = 'block';
-      img.style.maxWidth = '100%';
-      img.style.height = 'auto';
-      img.style.borderRadius = '8px';
-      img.style.backgroundColor = '#e2e8f0';
+      if (!positionedByBlockCss) {
+        img.style.display = 'block';
+        img.style.maxWidth = '100%';
+        img.style.height = 'auto';
+        img.style.borderRadius = '8px';
+        img.style.backgroundColor = '#e2e8f0';
+      }
     });
 
     return doc.body.innerHTML;
@@ -49,9 +73,8 @@ const BlockPreview = ({ code }) => {
     // We inject the external sheets and our custom styles INSIDE the shadow root
     // This strictly isolates them from the rest of the app
     shadowRootRef.current.innerHTML = `
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@wordpress/block-library@8.14.0/build-style/style.css" />
-      <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gutenberg-css@0.7.0/dist/gutenberg.min.css" />
-      <style>
+      ${PREVIEW_STYLESHEETS.map(href => `<link rel="stylesheet" href="${href}" />`).join('')}
+      <style>${PREVIEW_CSS}
         /* Astra Theme Simulation & Reset */
         :host {
           display: block;
@@ -81,7 +104,10 @@ const BlockPreview = ({ code }) => {
         .block-preview-viewport h5, 
         .block-preview-viewport h6 {
           font-weight: 600;
-          color: #3a3a3a;
+          /* inherit, not a fixed colour: a heading inside a cover or a
+             coloured group must take that context's text colour, which a
+             literal #3a3a3a here would override and render unreadable. */
+          color: inherit;
           margin-bottom: 0.6em;
           line-height: 1.2;
         }
