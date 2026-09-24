@@ -227,7 +227,7 @@ function App() {
 
         <main className="dashboard-container">
           {/* Results */}
-          <div className="card" style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
+          <div className="card results-card">
             <div className="card-header" style={{ justifyContent: 'space-between' }}>
               <span>Generated Code</span>
               {generatedCode && (

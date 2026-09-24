@@ -721,6 +721,44 @@ textarea {
     padding: 0 2rem 2rem;
 }
 
+/* The results card is a column whose body scrolls internally. */
+.results-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 420px;
+}
+
+/*
+ * On a desktop viewport the shell is pinned to the window and every scroll
+ * happens inside a panel: the sidebar in .sidebar-body, the generated output
+ * in .code-viewer-container. Without this the card grows to fit a tall
+ * preview and drags the whole page into scrolling.
+ *
+ * Below 1024px the sidebar becomes static and stacks above the content, so
+ * the page is allowed to scroll normally and none of this applies.
+ */
+@media (min-width: 1025px) {
+    .app-layout {
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .main-content {
+        height: 100vh;
+        min-height: 0;
+    }
+
+    .dashboard-container {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .results-card {
+        height: 100%;
+        min-height: 0;
+    }
+}
+
 @media (max-width: 1024px) {
     .sidebar {
         position: static;
@@ -793,6 +831,7 @@ textarea {
     display: flex;
     flex-direction: column;
     flex: 1;
+    max-width: 100%;
     /* Take up all available space in the parent */
     min-height: 0;
     /* Important for grid/flex nesting */
