@@ -1,16 +1,22 @@
 import React from 'react';
 
-const Sidebar = () => {
+const Sidebar = ({ children }) => {
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">
-                <div className="logo-icon">GD</div>
-                <span className="logo-text">GutenDraft</span>
+                {/* alt is empty on purpose: the wordmark beside it already
+                    names the product, so announcing both would duplicate. */}
+                <img
+                    src="/gutendraft.png"
+                    alt=""
+                    className="logo-mark"
+                    width="40"
+                    height="40"
+                />
             </div>
 
-            <div style={{ marginTop: 'auto', padding: '1rem', background: 'var(--bg-card-hover)', borderRadius: '12px' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 600, marginBottom: '0.25rem' }}>Pro Plan</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Unlimited Generations</div>
+            <div className="sidebar-body">
+                {children}
             </div>
         </aside>
     );

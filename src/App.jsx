@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import ImageUpload from './components/ImageUpload';
 import Template from './components/BlockPreview';
 import ChatInterface from './components/ChatInterface';
-import { generateGutenbergBlocks, refineGutenbergBlocks } from './services/openai';
+import { generateGutenbergBlocks, refineGutenbergBlocks } from './services/ai';
 import { parseGutenbergToJSON } from './utils/blockParser';
 import { TEMPLATES, getTemplateCode } from './data/templates';
+
+import ApiKeySettings from './components/ApiKeySettings';
+import CopyButton from './components/CopyButton';
+import { hasApiKey, getProvider, getProviderConfig } from './services/apiKey';
 
 import Sidebar from './components/Sidebar';
 import DashboardHeader from './components/DashboardHeader';
@@ -21,6 +25,14 @@ function App() {
   const [chatMessages, setChatMessages] = useState([]);
   const [isRefining, setIsRefining] = useState(false);
   const [framework, setFramework] = useState('gutenberg');
+  const [provider, setProvider] = useState(getProvider);
+  const [keyReady, setKeyReady] = useState(() => hasApiKey(getProvider()));
+
+  // The JSON view and its copy action share one parse.
+  const blockJson = React.useMemo(
+    () => (generatedCode ? JSON.stringify(parseGutenbergToJSON(generatedCode), null, 2) : ''),
+    [generatedCode]
+  );
 
   // Initialize theme
   React.useEffect(() => {
@@ -64,7 +76,7 @@ function App() {
     setChatMessages([]); // Reset chat on new upload
 
     try {
-      const code = await generateGutenbergBlocks(content, framework, type, context);
+      const code = await generateGutenbergBlocks(content, framework, type, context, provider);
       setGeneratedCode(code);
       setChatMessages([{ role: 'ai', content: type === 'url' ? 'I analyzed the design from using the URL and your description. How can I refine it?' : 'I rendered the initial blocks based on your design. How can I refine it?' }]);
     } catch (err) {
@@ -97,7 +109,7 @@ function App() {
     setIsRefining(true);
 
     try {
-      const updatedCode = await refineGutenbergBlocks(generatedCode, userPrompt);
+      const updatedCode = await refineGutenbergBlocks(generatedCode, userPrompt, provider);
       setGeneratedCode(updatedCode);
       setChatMessages([...newHistory, { role: 'ai', content: 'Code updated successfully!' }]);
     } catch (err) {
@@ -109,8 +121,101 @@ function App() {
 
   return (
     <div className="app-layout">
-      {/* Sidebar Navigation */}
-      <Sidebar />
+      {/* Sidebar Navigation - upload, framework and templates live here */}
+      <Sidebar>
+        <div className="sidebar-section">
+          <div className="sidebar-section-title">AI Provider</div>
+          <ApiKeySettings
+            provider={provider}
+            onProviderChange={setProvider}
+            onKeyChange={setKeyReady}
+          />
+        </div>
+
+        <div className="sidebar-section">
+          <div className="sidebar-section-title">Upload Design</div>
+
+          <div style={{ marginBottom: '1.25rem' }}>
+            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+              Target Framework
+            </label>
+            <select
+              value={framework}
+              onChange={(e) => setFramework(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'var(--bg-input)',
+                color: 'var(--text-primary)',
+                fontSize: '0.95rem',
+                outline: 'none'
+              }}
+            >
+              <option value="gutenberg">Gutenberg Core (Default)</option>
+              <option value="astra">Astra Theme Optimized</option>
+              <option value="spectra">Spectra Blocks (UAGB)</option>
+              <option value="nexter">Nexter Blocks (The Plus Addons)</option>
+            </select>
+          </div>
+
+          {!keyReady && (
+            <p className="api-key-required">
+              Add a {getProviderConfig(provider).label} API key above to generate from a design.
+            </p>
+          )}
+
+          <ImageUpload
+            onImageSelect={handleImageSelect}
+            currentImage={image || xdUrl}
+            currentType={inputType}
+            compact={!!(image || xdUrl)}
+          />
+        </div>
+
+        {/* Quick Start Templates */}
+        <div className="sidebar-section">
+          <div className="sidebar-section-title">Quick Start Templates</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+            {TEMPLATES.map(template => (
+              <button
+                key={template.id}
+                onClick={() => handleTemplateSelect(template.id)}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  padding: '0.875rem 0.75rem',
+                  background: 'var(--bg-body)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  textAlign: 'center'
+                }}
+                className="template-btn"
+              >
+                <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.875rem' }}>{template.name}</span>
+                <span style={{ fontSize: '0.7rem', lineHeight: 1.4, color: 'var(--text-secondary)' }}>{template.description}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Generation status */}
+        {(image || xdUrl || generatedCode) && (
+          <div className="sidebar-section">
+            <div className="sidebar-section-title">Generation Status</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: generatedCode ? 'var(--status-ok)' : 'var(--status-warn)' }}></span>
+              <span className="status-value">{generatedCode ? 'Completed' : 'Pending Action'}</span>
+            </div>
+          </div>
+        )}
+      </Sidebar>
 
       {/* Main Content Area */}
       <div className="main-content">
@@ -121,105 +226,19 @@ function App() {
         />
 
         <main className="dashboard-container">
-          {/* Left Column: Upload */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-            <div className="card">
-              <div className="card-header">
-                <span>Upload Design</span>
-              </div>
-              <div style={{ padding: '1.5rem' }}>
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-                    Target Framework
-                  </label>
-                  <select
-                    value={framework}
-                    onChange={(e) => setFramework(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-input)',
-                      color: 'var(--text-primary)',
-                      fontSize: '0.95rem',
-                      outline: 'none'
-                    }}
-                  >
-                    <option value="gutenberg">Gutenberg Core (Default)</option>
-                    <option value="astra">Astra Theme Optimized</option>
-                    <option value="spectra">Spectra Blocks (UAGB)</option>
-                    <option value="nexter">Nexter Blocks (The Plus Addons)</option>
-                  </select>
-                </div>
-
-                <ImageUpload
-                  onImageSelect={handleImageSelect}
-                  currentImage={image || xdUrl}
-                  currentType={inputType}
-                  compact={!!(image || xdUrl)}
-                />
-              </div>
-            </div>
-
-            {/* Quick Start Templates */}
-            <div className="card">
-              <div className="card-header">
-                <span>Quick Start Templates</span>
-              </div>
-              <div style={{ padding: '1.5rem', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem' }}>
-                {TEMPLATES.map(template => (
-                  <button
-                    key={template.id}
-                    onClick={() => handleTemplateSelect(template.id)}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '0.5rem',
-                      padding: '1rem',
-                      background: 'var(--bg-body)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      textAlign: 'center'
-                    }}
-                    className="template-btn"
-                  >
-                    <span style={{ fontWeight: 500, color: 'var(--text-primary)', fontSize: '0.9rem' }}>{template.name}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{template.description}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Additional Info / Stats could go here later */}
-            {(image || xdUrl || generatedCode) && (
-              <div className="card" style={{ padding: '1.5rem' }}>
-                <h4 style={{ margin: '0 0 1rem 0', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>GENERATION STATUS</h4>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.9rem' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: generatedCode ? '#10B981' : '#F59E0B' }}></span>
-                  <span>{generatedCode ? 'Completed' : 'Pending Action'}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Right Column: Results */}
+          {/* Results */}
           <div className="card" style={{ minHeight: 'calc(100vh - 120px)', display: 'flex', flexDirection: 'column' }}>
             <div className="card-header" style={{ justifyContent: 'space-between' }}>
               <span>Generated Code</span>
               {generatedCode && (
-                <span style={{
+                <span className="version-badge" style={{
                   fontSize: '0.75rem',
                   background: 'var(--accent-light)',
                   color: 'var(--accent-primary)',
                   padding: '4px 8px',
                   borderRadius: '6px'
                 }}>
-                  Version 1.0
+                  {getProviderConfig(provider).model}
                 </span>
               )}
             </div>
@@ -268,6 +287,15 @@ function App() {
                       >
                         AI Assistant
                       </button>
+
+                      <div className="tab-actions">
+                        {activeTab === 'code' && (
+                          <CopyButton value={generatedCode} title="Copy block markup" />
+                        )}
+                        {activeTab === 'json' && (
+                          <CopyButton value={blockJson} title="Copy block JSON" />
+                        )}
+                      </div>
                     </div>
 
                     <div style={{ padding: '0 0.5rem 0.5rem', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
@@ -278,16 +306,6 @@ function App() {
                             value={generatedCode}
                             readOnly
                           />
-                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.5rem' }}>
-                            <button
-                              className="btn-icon"
-                              onClick={() => navigator.clipboard.writeText(generatedCode)}
-                              title="Copy Code"
-                              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none' }}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            </button>
-                          </div>
                         </div>
                       )}
 
@@ -303,19 +321,9 @@ function App() {
                         <div className="code-viewer-container" style={{ margin: '0.5rem' }}>
                           <textarea
                             className="code-textarea"
-                            value={JSON.stringify(parseGutenbergToJSON(generatedCode), null, 2)}
+                            value={blockJson}
                             readOnly
                           />
-                          <div style={{ position: 'absolute', top: '10px', right: '10px', display: 'flex', gap: '0.5rem' }}>
-                            <button
-                              className="btn-icon"
-                              onClick={() => navigator.clipboard.writeText(JSON.stringify(parseGutenbergToJSON(generatedCode), null, 2))}
-                              title="Copy JSON"
-                              style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: 'none' }}
-                            >
-                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            </button>
-                          </div>
                         </div>
                       )}
 
@@ -331,9 +339,9 @@ function App() {
                     </div>
                   </>
                 ) : error ? (
-                  <div style={{ padding: '2rem', color: '#ef4444', textAlign: 'center' }}>
+                  <div style={{ padding: '2rem', color: 'var(--status-error)', textAlign: 'center' }}>
                     {error}
-                    <button onClick={() => setImage(null)} className="btn-primary" style={{ display: 'block', margin: '1rem auto' }}>Try Again</button>
+                    <button onClick={handleReset} className="btn-primary" style={{ display: 'block', margin: '1rem auto' }}>Try Again</button>
                   </div>
                 ) : null}
               </>

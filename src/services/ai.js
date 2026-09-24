@@ -1,11 +1,67 @@
 import OpenAI from 'openai';
+import { resolveApiKey, getProvider, getProviderConfig } from './apiKey';
 
-const openai = new OpenAI({
-    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-    dangerouslyAllowBrowser: true // Required for client-side usage (demo only)
-});
+export class MissingApiKeyError extends Error {
+    constructor(providerLabel) {
+        super(`Add your ${providerLabel} API key in the sidebar to generate blocks.`);
+        this.name = 'MissingApiKeyError';
+    }
+}
 
-export const generateGutenbergBlocks = async (input, framework = 'gutenberg', inputType = 'image', context = '') => {
+/**
+ * One client shape for both providers: Gemini exposes an OpenAI-compatible
+ * endpoint, so only the base URL and the key change.
+ *
+ * Built per call rather than once at module load, so switching provider or
+ * saving a key takes effect immediately instead of after a reload.
+ */
+const getClient = (providerId) => {
+    const provider = getProviderConfig(providerId);
+    const apiKey = resolveApiKey(provider.id);
+    if (!apiKey) throw new MissingApiKeyError(provider.label);
+
+    return new OpenAI({
+        apiKey,
+        baseURL: provider.baseURL,
+        dangerouslyAllowBrowser: true // The key is the user's own and never leaves their browser except to the provider.
+    });
+};
+
+/** Turn an SDK error into something worth showing a user. */
+const describeError = (error, provider) => {
+    if (error instanceof MissingApiKeyError) return error;
+
+    const name = provider.label;
+
+    /* Gemini reports a bad key as 400 INVALID_ARGUMENT rather than 401, and
+       wraps the body in a JSON array the SDK may not unwrap into .message —
+       so search the structured error too, not just the message string. */
+    const haystack = [
+        error?.message,
+        error?.error?.message,
+        typeof error?.error === 'string' ? error.error : '',
+    ].filter(Boolean).join(' ');
+
+    const badKey = error?.status === 401 ||
+        (error?.status === 400 && /api[ _-]?key/i.test(haystack));
+
+    if (badKey) {
+        return new Error(`${name} rejected that API key. Check it in the sidebar, or create a new one.`);
+    }
+    if (error?.status === 429) {
+        return new Error(`${name} rate limit or quota reached for this key. Check your billing, then try again.`);
+    }
+    if (error?.status === 403) {
+        return new Error(`This key is not allowed to use ${provider.model}. Check its permissions in your ${name} account.`);
+    }
+    if (error?.status === 404) {
+        return new Error(`${name} does not recognise the model ${provider.model}. It may have been retired.`);
+    }
+    return error;
+};
+
+export const generateGutenbergBlocks = async (input, framework = 'gutenberg', inputType = 'image', context = '', providerId = getProvider()) => {
+    const provider = getProviderConfig(providerId);
     let systemPrompt = '';
 
     if (framework === 'spectra') {
@@ -67,9 +123,11 @@ export const generateGutenbergBlocks = async (input, framework = 'gutenberg', in
         },
     ];
 
+    const client = getClient(provider.id);
+
     try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+        const response = await client.chat.completions.create({
+            model: provider.model,
             messages: [
                 {
                     role: "system",
@@ -91,15 +149,18 @@ export const generateGutenbergBlocks = async (input, framework = 'gutenberg', in
 
         return content;
     } catch (error) {
-        console.error("OpenAI API Error:", error);
-        throw error;
+        console.error("Generation error:", error);
+        throw describeError(error, provider);
     }
 };
 
-export const refineGutenbergBlocks = async (currentCode, userInstruction) => {
+export const refineGutenbergBlocks = async (currentCode, userInstruction, providerId = getProvider()) => {
+    const provider = getProviderConfig(providerId);
+    const client = getClient(provider.id);
+
     try {
-        const response = await openai.chat.completions.create({
-            model: "gpt-4o",
+        const response = await client.chat.completions.create({
+            model: provider.model,
             messages: [
                 {
                     role: "system",
@@ -126,7 +187,7 @@ export const refineGutenbergBlocks = async (currentCode, userInstruction) => {
 
         return content;
     } catch (error) {
-        console.error("OpenAI Refinement Error:", error);
-        throw error;
+        console.error("Refinement error:", error);
+        throw describeError(error, provider);
     }
 };

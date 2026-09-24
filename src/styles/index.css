@@ -1,83 +1,148 @@
 :root {
-    /* Core Colors - Professional Dashboard Palette */
-    --accent-primary: #4F46E5;
-    /* Indigo-600 */
-    --accent-secondary: #4338ca;
-    --accent-light: #EEF2FF;
-    /* Indigo-50 */
+    /* "Stormy morning" source swatches. Everything below is derived from
+       these four so the UI stays one family. Kept as tokens for reference. */
+    --stormy-slate: #6A89A7;
+    --stormy-pale: #BDDDFC;
+    --stormy-sky: #88BDF2;
+    --stormy-ink: #384959;
+
+    /* Accent. #88BDF2 is only ~2:1 on white, so the interactive blue is a
+       darkened member of the same family; the sky tone becomes the tint. */
+    --accent-primary: #356FA3;
+    --accent-secondary: #2A5C8A;
+    --accent-light: #E8F2FB;
+    --accent-on: #FFFFFF;
 
     /* Sidebar Specific */
     --sidebar-bg: #FFFFFF;
-    --sidebar-text: #64748B;
-    --sidebar-text-active: #4F46E5;
-    --sidebar-bg-active: #EEF2FF;
-    --sidebar-border: #F1F5F9;
+    --sidebar-text: #55708A;
+    --sidebar-text-active: #356FA3;
+    --sidebar-bg-active: #E8F2FB;
+    --sidebar-border: #DFE9F3;
 
     /* App Background */
-    --bg-body: #F3F4F6;
-    /* Light Gray Background */
+    --bg-body: #EDF3F9;
 
     /* Cards */
     --bg-card: #FFFFFF;
-    --bg-card-hover: #F9FAFB;
+    --bg-card-hover: #F4F8FC;
     --bg-input: #FFFFFF;
 
     /* Text */
-    --text-primary: #111827;
-    /* Gray-900 */
-    --text-secondary: #6B7280;
-    /* Gray-500 */
+    --text-primary: #2C3D4E;
+    --text-secondary: #55708A;
 
     /* Borders */
-    --border-color: #E5E7EB;
+    --border-color: #D6E2EE;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.05), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    /* Status. Muted to sit beside a low-saturation blue palette. */
+    --status-ok: #2E7D6B;
+    --status-warn: #835916;
+    --status-warn-bg: #FBF1DC;
+    --status-warn-border: #EFDDB8;
+    --status-error: #B4452F;
 
-    --glass-border: 1px solid #E5E7EB;
+    /* Code surface */
+    --code-bg: #22303F;
+    --code-text: #D7E4F0;
 
-    --step-badge-bg: #EEF2FF;
-    --step-badge-text: #4F46E5;
+    /* Upload dropzone */
+    --dropzone-bg: #F4F8FC;
+    --dropzone-border: #BBD0E3;
+    --dropzone-bg-active: #E8F2FB;
+
+    /* Shadows tinted with the ink rather than neutral black */
+    --shadow-sm: 0 1px 2px 0 rgb(44 61 78 / 0.06);
+    --shadow-card: 0 4px 6px -1px rgb(44 61 78 / 0.07), 0 2px 4px -2px rgb(44 61 78 / 0.06);
+
+    --glass-border: 1px solid #D6E2EE;
+
+    --step-badge-bg: #E8F2FB;
+    --step-badge-text: #356FA3;
+
+    /* Type: Montserrat carries the personality, Inter does the reading
+       work, JetBrains Mono handles generated markup. */
+    --font-display: 'Montserrat', system-ui, sans-serif;
+    --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
 
 [data-theme='dark'] {
-    /* Dark Theme Overrides */
-    --accent-primary: #818CF8;
-    --accent-light: rgba(129, 140, 248, 0.1);
+    /* The sky tone leads in the dark theme, where it finally has the
+       contrast to carry interaction. */
+    --accent-primary: #88BDF2;
+    --accent-secondary: #BDDDFC;
+    --accent-light: #25384A;
+    --accent-on: #16222E;
 
-    --sidebar-bg: #111827;
-    --sidebar-text: #9CA3AF;
-    --sidebar-text-active: #F3F4F6;
-    --sidebar-bg-active: #1F2937;
-    --sidebar-border: #374151;
+    --sidebar-bg: #18222C;
+    --sidebar-text: #9DB4C9;
+    --sidebar-text-active: #88BDF2;
+    --sidebar-bg-active: #25384A;
+    --sidebar-border: #2C3D4E;
 
-    --bg-body: #0B0F19;
-    /* Deep Dark */
+    --bg-body: #141C25;
 
-    --bg-card: #1F2937;
-    --bg-card-hover: #374151;
-    --bg-input: #111827;
+    --bg-card: #1F2C38;
+    --bg-card-hover: #2A3947;
+    --bg-input: #18222C;
 
-    --text-primary: #F9FAFB;
-    --text-secondary: #9CA3AF;
+    --text-primary: #E6EEF7;
+    --text-secondary: #9DB4C9;
 
-    --border-color: #374151;
-    --glass-border: 1px solid #374151;
+    --border-color: #33475A;
+    --glass-border: 1px solid #33475A;
 
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --status-ok: #5FC0A8;
+    --status-warn: #E0B15C;
+    --status-warn-bg: rgba(224, 177, 92, 0.12);
+    --status-warn-border: rgba(224, 177, 92, 0.3);
+    --status-error: #F08A72;
 
-    --step-badge-bg: #374151;
-    --step-badge-text: #F9FAFB;
+    --code-bg: #141C25;
+    --code-text: #D7E4F0;
+
+    --dropzone-bg: #18222C;
+    --dropzone-border: #3B5268;
+    --dropzone-bg-active: #25384A;
+
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.35);
+
+    --step-badge-bg: #25384A;
+    --step-badge-text: #BDDDFC;
 }
 
 body {
     margin: 0;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: var(--font-body);
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
     background-color: var(--bg-body);
     color: var(--text-primary);
     line-height: 1.6;
     transition: background-color 0.3s ease;
+}
+
+/* Display face for anything that acts as a title or a label. The generated
+   block preview lives in a shadow root, so none of this reaches it. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: -0.02em;
+}
+
+button,
+input,
+select,
+textarea {
+    font-family: inherit;
 }
 
 * {
@@ -92,7 +157,7 @@ body {
 
 /* Sidebar Styles */
 .sidebar {
-    width: 260px;
+    width: 340px;
     background: var(--sidebar-bg);
     border-right: 1px solid var(--sidebar-border);
     display: flex;
@@ -103,44 +168,381 @@ body {
     top: 0;
     z-index: 10;
     padding: 1.5rem;
+    overflow: hidden;
     transition: all 0.3s ease;
 }
 
+/* Scrolling region beneath the pinned logo */
+.sidebar-body {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0 -1.5rem;
+    padding: 0 1.5rem 1.5rem;
+}
+
+.sidebar-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
+}
+
+.sidebar-section + .sidebar-section {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--sidebar-border);
+}
+
+.sidebar-section-title {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+/* Monospace accent. Used for machine values - a version, a URL, a file
+   format, a system status - never for prose. */
+.mono {
+    font-family: var(--font-mono);
+    font-feature-settings: normal;
+}
+
+/* A version string, a status: short technical values that want even
+   spacing and tabular digits. */
+.version-badge,
+.status-value {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+}
+
+.format-tag {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    background: var(--accent-light);
+    color: var(--accent-primary);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* A URL is a machine string - mono makes a mistyped character visible. */
+.url-input {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+/* ---------- API key panel ---------- */
+
+.provider-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 0.75rem;
+    background: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+}
+
+.provider-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.5rem;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.provider-tab:hover {
+    color: var(--text-primary);
+}
+
+.provider-tab.active {
+    background: var(--bg-card);
+    color: var(--accent-primary);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Marks a provider that already has a key, so the unselected tab still
+   tells you whether switching to it will work. */
+.provider-tab-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--status-ok);
+}
+
+.provider-model {
+    margin: 0.75rem 0 0 0;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.api-key-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.api-key-input-row {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.api-key-input {
+    width: 100%;
+    padding: 0.7rem 2.5rem 0.7rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.api-key-input:focus {
+    border-color: var(--accent-primary);
+}
+
+.api-key-reveal {
+    position: absolute;
+    right: 0.5rem;
+    display: flex;
+    align-items: center;
+    padding: 4px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.api-key-reveal:hover {
+    color: var(--accent-primary);
+}
+
+.api-key-buttons {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.api-key-save {
+    flex: 1;
+}
+
+.api-key-error {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--status-error);
+}
+
+.api-key-note {
+    margin: 0;
+    font-size: 0.7rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+}
+
+.api-key-note a {
+    color: var(--accent-primary);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.api-key-note a:hover {
+    text-decoration: underline;
+}
+
+.api-key-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.75rem;
+    background: var(--bg-card-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+}
+
+.api-key-dot {
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--status-ok);
+}
+
+.api-key-value {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.api-key-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.api-key-link {
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: var(--accent-primary);
+    font-size: 0.75rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.api-key-link:hover {
+    text-decoration: underline;
+}
+
+.api-key-link.danger {
+    color: var(--text-secondary);
+}
+
+.api-key-link.danger:hover {
+    color: var(--status-error);
+}
+
+.api-key-required {
+    margin: 0 0 1rem 0;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--status-warn);
+    background: var(--status-warn-bg);
+    border: 1px solid var(--status-warn-border);
+    border-radius: 8px;
+}
+
+.loading-dots {
+    font-family: var(--font-mono);
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+}
+
+/* ---------- Copy button + tooltip ---------- */
+
+.copy-wrap {
+    position: relative;
+    display: inline-flex;
+}
+
+.copy-wrap .copy-btn:hover {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.copy-tooltip {
+    position: absolute;
+    top: 6px;
+    right: calc(100% + 8px);
+    padding: 4px 9px;
+    border-radius: 6px;
+    z-index: 5;
+    background: var(--text-primary);
+    color: var(--bg-card);
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.copy-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.copy-tooltip.failed {
+    background: var(--status-warn-bg);
+    color: var(--status-warn);
+    border: 1px solid var(--status-warn-border);
+}
+
+/* Small arrow pointing back up at the button. */
+.copy-tooltip::before {
+        content: '';
+            position: absolute;
+            bottom: 100%;
+            right: -10px;
+            top: 8px;
+            border: 5px solid transparent;
+            border-left-color: var(--text-primary);
+}
+
+.copy-tooltip.failed::before {
+    border-bottom-color: var(--status-warn-bg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .copy-tooltip {
+        transition: none;
+        transform: none;
+    }
+}
+
 .sidebar-logo {
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     gap: 0.75rem;
     font-weight: 800;
     font-size: 1.25rem;
     color: var(--text-primary);
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.75rem;
     padding: 0 0.5rem;
 }
 
-.logo-icon {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-    color: white;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-    font-weight: 700;
-    box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
+.logo-mark {
+    width: 180px;
+    height: 60px;
+    flex-shrink: 0;
+    object-fit: contain;
+    /* The mark's own artwork is light-on-transparent, so it sits on either
+       theme without a filter — only the wordmark needed to become live text. */
 }
 
 .logo-text {
-    font-family: 'Outfit', sans-serif;
-    letter-spacing: -0.02em;
-    background: linear-gradient(to right, var(--text-primary), var(--text-secondary));
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    /* Fallback will be handled by gradient if supported, else text-primary via inheritance if we remove this, but transparent is key for gradient text */
-    /* To be safe for better visibility without custom font load confirmation, simpler style: */
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.3rem;
+    letter-spacing: -0.03em;
     color: var(--text-primary);
+}
+
+.logo-text-accent {
+    color: var(--accent-primary);
 }
 
 .nav-section {
@@ -189,7 +591,7 @@ body {
 /* Main Content Area */
 .main-content {
     flex: 1;
-    margin-left: 260px;
+    margin-left: 340px;
     /* Sidebar Width */
     display: flex;
     flex-direction: column;
@@ -241,6 +643,8 @@ body {
 }
 
 .card-header {
+    font-family: var(--font-display);
+    letter-spacing: -0.01em;
     padding: 1rem 1.5rem;
     border-bottom: 1px solid var(--border-color);
     background: var(--bg-card);
@@ -255,7 +659,7 @@ body {
 /* Utility Classes */
 .btn-primary {
     background: var(--accent-primary);
-    color: white;
+    color: var(--accent-on);
     border: none;
     border-radius: 8px;
     padding: 0.6rem 1.2rem;
@@ -309,7 +713,7 @@ body {
 .dashboard-container {
     padding: 0 2rem 2rem;
     display: grid;
-    grid-template-columns: 350px 1fr;
+    grid-template-columns: 1fr;
     gap: 1.5rem;
 }
 
@@ -319,21 +723,31 @@ body {
 
 @media (max-width: 1024px) {
     .sidebar {
-        transform: translateX(-100%);
+        position: static;
+        width: 100%;
+        height: auto;
+        overflow: visible;
+        border-right: none;
+        border-bottom: 1px solid var(--sidebar-border);
+    }
+
+    .sidebar-body {
+        overflow: visible;
+    }
+
+    .app-layout {
+        flex-direction: column;
     }
 
     .main-content {
         margin-left: 0;
-    }
-
-    .dashboard-container {
-        grid-template-columns: 1fr;
     }
 }
 
 /* Updated Tab Design (Pills) */
 .tabs {
     display: flex;
+    align-items: center;
     gap: 0.5rem;
     background: transparent;
     padding: 0 1.5rem 1rem;
@@ -341,7 +755,16 @@ body {
     border-bottom: 1px solid var(--border-color);
 }
 
+/* Code actions sit at the end of the tab row, clear of the code surface. */
+.tab-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
 .tab {
+    font-family: var(--font-display);
     padding: 0.6rem 1rem;
     font-size: 0.875rem;
     color: var(--text-secondary);
@@ -376,7 +799,7 @@ body {
     position: relative;
     border-radius: 8px;
     overflow: hidden;
-    background: #0B0F19;
+    background: var(--code-bg);
     border: var(--glass-border);
 }
 
@@ -386,8 +809,8 @@ body {
     background: transparent;
     border: none;
     padding: 1rem;
-    color: #e2e8f0;
-    font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+    color: var(--code-text);
+    font-family: var(--font-mono);
     font-size: 0.875rem;
     line-height: 1.6;
     resize: none;
@@ -460,7 +883,7 @@ body {
 
 .chat-send-btn {
     background: var(--accent-primary);
-    color: white;
+    color: var(--accent-on);
     border: none;
     border-radius: 8px;
     width: 36px;

@@ -100,8 +100,8 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                         padding: compact ? '2rem 1rem' : '3rem 1.5rem',
                         textAlign: 'center',
                         cursor: 'pointer',
-                        background: isDragging ? '#F5F3FF' : '#F8FAFC',
-                        border: '2px dashed ' + (isDragging ? '#7C3AED' : '#CBD5E1'),
+                        background: isDragging ? 'var(--dropzone-bg-active)' : 'var(--dropzone-bg)',
+                        border: '2px dashed ' + (isDragging ? 'var(--accent-primary)' : 'var(--dropzone-border)'),
                         borderRadius: '12px',
                         transition: 'all 0.3s ease',
                         position: 'relative',
@@ -125,12 +125,12 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                                     maxWidth: '100%',
                                     maxHeight: '300px',
                                     borderRadius: '8px',
-                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    boxShadow: 'var(--shadow-card)'
                                 }}
                             />
                             <div style={{
                                 marginTop: '1rem',
-                                color: '#64748B',
+                                color: 'var(--text-secondary)',
                                 fontSize: '0.875rem',
                                 display: 'flex',
                                 alignItems: 'center',
@@ -145,7 +145,7 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                         <div style={{ pointerEvents: 'none' }}>
                             <div style={{
                                 marginBottom: '1rem',
-                                color: '#7C3AED',
+                                color: 'var(--accent-primary)',
                                 display: 'flex',
                                 justifyContent: 'center'
                             }}>
@@ -165,23 +165,16 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                                 </svg>
                             </div>
 
-                            <h3 style={{ margin: '0 0 0.5rem 0', color: '#1E293B', fontSize: '1rem', fontWeight: 600 }}>
+                            <h3 style={{ margin: '0 0 0.5rem 0', color: 'var(--text-primary)', fontSize: '1rem', fontWeight: 600 }}>
                                 Drag & drop your design
                             </h3>
-                            <p style={{ margin: '0 0 1rem 0', color: '#64748B', fontSize: '0.875rem' }}>
+                            <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                                 or click to browse
                             </p>
 
                             <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
                                 {['PNG', 'JPG', 'WebP'].map(tag => (
-                                    <span key={tag} style={{
-                                        fontSize: '0.75rem',
-                                        background: '#E2E8F0',
-                                        color: '#475569',
-                                        padding: '4px 8px',
-                                        borderRadius: '6px',
-                                        fontWeight: 500
-                                    }}>
+                                    <span key={tag} className="format-tag">
                                         {tag}
                                     </span>
                                 ))}
@@ -190,12 +183,13 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                     )}
                 </div>
             ) : (
-                <div style={{ padding: '1.5rem', background: '#F8FAFC', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div style={{ padding: '1.5rem', background: 'var(--dropzone-bg)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                     <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                         Adobe XD / Figma Preview URL
                     </label>
                     <input
                         type="url"
+                        className="url-input"
                         placeholder="https://xd.adobe.com/view/..."
                         value={urlInput}
                         onChange={(e) => setUrlInput(e.target.value)}
@@ -205,7 +199,9 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                             border: '1px solid var(--border-color)',
                             borderRadius: '8px',
                             outline: 'none',
-                            marginBottom: '1rem'
+                            marginBottom: '1rem',
+                            background: 'var(--bg-input)',
+                            color: 'var(--text-primary)'
                         }}
                     />
 
@@ -224,7 +220,9 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                             outline: 'none',
                             marginBottom: '1rem',
                             minHeight: '80px',
-                            fontFamily: 'inherit'
+                            fontFamily: 'inherit',
+                            background: 'var(--bg-input)',
+                            color: 'var(--text-primary)'
                         }}
                     />
 
