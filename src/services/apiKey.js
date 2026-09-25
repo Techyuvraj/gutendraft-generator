@@ -9,9 +9,11 @@ export const PROVIDERS = {
         label: 'Gemini',
         model: 'gemini-3.8-flash',
         baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-        placeholder: 'AIza...',
-        keyPattern: /^AIza[A-Za-z0-9_-]{30,}$/,
-        keyHint: 'Gemini keys start with "AIza".',
+        placeholder: 'AIza... or AQ....',
+        // Two formats: the classic "AIza..." key, and the newer "AQ." key that
+        // Google AI Studio now issues (which also contains dots).
+        keyPattern: /^(AIza[A-Za-z0-9_-]{30,}|AQ\.[A-Za-z0-9._-]{20,})$/,
+        keyHint: 'Gemini keys start with "AIza" or "AQ.".',
         consoleUrl: 'https://aistudio.google.com/apikey',
         consoleLabel: 'Google AI Studio',
         // Its CORS preflight rejects the SDK's X-Stainless-* headers (see ai.js).
@@ -147,6 +149,7 @@ const FOREIGN_KEY_PREFIXES = [
     // Matched against the provider id, not the display label, so a valid
     // Gemini key is never reported as foreign to the Gemini field.
     { prefix: 'AIza', service: 'Google Gemini', ownedBy: 'gemini' },
+    { prefix: 'AQ.', service: 'Google Gemini', ownedBy: 'gemini' },
 ];
 
 /** Returns the service a key appears to belong to, when it is not this one. */
