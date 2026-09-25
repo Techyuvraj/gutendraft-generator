@@ -12,8 +12,14 @@ import { hasApiKey, getProvider, getProviderConfig } from './services/apiKey';
 
 import Sidebar from './components/Sidebar';
 import DashboardHeader from './components/DashboardHeader';
+import AuthScreen from './components/AuthScreen';
+import HistoryList from './components/HistoryList';
+import { supabase } from './services/supabase';
+import {
+  saveGeneration, updateGeneration, listGenerations, loadGeneration, deleteGeneration,
+} from './services/history';
 
-function App() {
+function Workspace({ user, onSignOut }) {
   const [image, setImage] = useState(null);
   const [inputType, setInputType] = useState('image'); // 'image' | 'url'
   const [xdUrl, setXdUrl] = useState('');
@@ -28,11 +34,87 @@ function App() {
   const [provider, setProvider] = useState(getProvider);
   const [keyReady, setKeyReady] = useState(() => hasApiKey(getProvider()));
 
+  // The saved row the workspace is showing, so refinements update it in place.
+  const [currentId, setCurrentId] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+  const [historyError, setHistoryError] = useState('');
+  const [saveError, setSaveError] = useState('');
+
   // The JSON view and its copy action share one parse.
   const blockJson = React.useMemo(
     () => (generatedCode ? JSON.stringify(parseGutenbergToJSON(generatedCode), null, 2) : ''),
     [generatedCode]
   );
+
+  const refreshHistory = React.useCallback(async () => {
+    try {
+      setHistory(await listGenerations());
+      setHistoryError('');
+    } catch (err) {
+      setHistoryError(err.message || 'Could not load your saved generations.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => { refreshHistory(); }, [refreshHistory]);
+
+  /* Saving never blocks the result: the user already has their markup, so a
+     failed save is reported beside the history rather than as an error. */
+  const persistNew = async (record) => {
+    try {
+      const row = await saveGeneration(user.id, record);
+      setCurrentId(row.id);
+      setHistory(prev => [row, ...prev]);
+      setSaveError('');
+    } catch (err) {
+      console.error('Save failed', err);
+      setSaveError(`Not saved: ${err.message || 'database unavailable'}`);
+    }
+  };
+
+  const persistUpdate = async (code, chat) => {
+    if (!currentId) return;
+    try {
+      await updateGeneration(currentId, { code, chat });
+      setSaveError('');
+    } catch (err) {
+      console.error('Update failed', err);
+      setSaveError(`Latest change not saved: ${err.message || 'database unavailable'}`);
+    }
+  };
+
+  const handleOpenGeneration = async (id) => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const row = await loadGeneration(id);
+      setCurrentId(row.id);
+      setFramework(row.framework);
+      setInputType(row.source === 'url' ? 'url' : 'image');
+      setImage(row.source === 'image' ? row.imageUrl : null);
+      setXdUrl(row.source === 'url' ? row.xd_url || '' : '');
+      setGeneratedCode(row.code);
+      setChatMessages(Array.isArray(row.chat) ? row.chat : []);
+      setActiveTab('preview');
+    } catch (err) {
+      setError(err.message || 'Could not open that generation.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteGeneration = async (item) => {
+    if (!window.confirm('Delete this saved generation? This cannot be undone.')) return;
+    try {
+      await deleteGeneration(item);
+      setHistory(prev => prev.filter(h => h.id !== item.id));
+      if (item.id === currentId) setCurrentId(null);
+    } catch (err) {
+      setSaveError(`Could not delete: ${err.message}`);
+    }
+  };
 
   // Initialize theme
   React.useEffect(() => {
@@ -41,6 +123,7 @@ function App() {
 
 
   const handleReset = () => {
+    setCurrentId(null);
     setImage(null);
     setXdUrl('');
     setInputType('image');
@@ -74,11 +157,24 @@ function App() {
     setError(null);
     setGeneratedCode('');
     setChatMessages([]); // Reset chat on new upload
+    setCurrentId(null);
 
     try {
       const code = await generateGutenbergBlocks(content, framework, type, context, provider);
+      const chat = [{ role: 'ai', content: type === 'url' ? 'I analyzed the design from using the URL and your description. How can I refine it?' : 'I rendered the initial blocks based on your design. How can I refine it?' }];
       setGeneratedCode(code);
-      setChatMessages([{ role: 'ai', content: type === 'url' ? 'I analyzed the design from using the URL and your description. How can I refine it?' : 'I rendered the initial blocks based on your design. How can I refine it?' }]);
+      setChatMessages(chat);
+      persistNew({
+        source: type,
+        framework,
+        provider,
+        model: getProviderConfig(provider).model,
+        image: type === 'image' ? content : null,
+        xdUrl: type === 'url' ? content : null,
+        context,
+        code,
+        chat,
+      });
     } catch (err) {
       setError(err.message || 'Failed to generate blocks. Please try again.');
     } finally {
@@ -92,13 +188,16 @@ function App() {
     setChatMessages([]);
     setImage(null); // Clear image if a template is selected
     setXdUrl('');
+    setCurrentId(null);
 
     // Simulate a brief loading for UX
     setTimeout(() => {
       const code = getTemplateCode(templateId, framework);
+      const chat = [{ role: 'ai', content: `I've generated a ${templateId} template for ${framework}. You can now customize it or export it.` }];
       setGeneratedCode(code);
-      setChatMessages([{ role: 'ai', content: `I've generated a ${templateId} template for ${framework}. You can now customize it or export it.` }]);
+      setChatMessages(chat);
       setIsLoading(false);
+      persistNew({ source: 'template', framework, templateId, code, chat });
     }, 600);
   };
 
@@ -110,8 +209,10 @@ function App() {
 
     try {
       const updatedCode = await refineGutenbergBlocks(generatedCode, userPrompt, provider);
+      const chat = [...newHistory, { role: 'ai', content: 'Code updated successfully!' }];
       setGeneratedCode(updatedCode);
-      setChatMessages([...newHistory, { role: 'ai', content: 'Code updated successfully!' }]);
+      setChatMessages(chat);
+      persistUpdate(updatedCode, chat);
     } catch (err) {
       setChatMessages([...newHistory, { role: 'ai', content: 'Sorry, I failed to update the code. Please try again.' }]);
     } finally {
@@ -205,6 +306,20 @@ function App() {
           </div>
         </div>
 
+        {/* Saved work for the signed-in user */}
+        <div className="sidebar-section">
+          <div className="sidebar-section-title">My Generations</div>
+          {saveError && <p className="api-key-error" style={{ marginBottom: '0.75rem' }}>{saveError}</p>}
+          <HistoryList
+            items={history}
+            loading={historyLoading}
+            error={historyError}
+            activeId={currentId}
+            onOpen={handleOpenGeneration}
+            onDelete={handleDeleteGeneration}
+          />
+        </div>
+
         {/* Generation status */}
         {(image || xdUrl || generatedCode) && (
           <div className="sidebar-section">
@@ -223,6 +338,8 @@ function App() {
           theme={theme}
           toggleTheme={toggleTheme}
           onReset={handleReset}
+          userEmail={user.email}
+          onSignOut={onSignOut}
         />
 
         <main className="dashboard-container">
@@ -351,6 +468,50 @@ function App() {
       </div>
     </div>
   )
+}
+
+/**
+ * Auth gate: nothing in the workspace renders, and nothing is saved, until
+ * there is a signed-in user. The session persists across reloads.
+ */
+function App() {
+  const [session, setSession] = useState(null);
+  const [checking, setChecking] = useState(Boolean(supabase));
+  const [recovering, setRecovering] = useState(false);
+
+  React.useEffect(() => {
+    if (!supabase) return undefined;
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setChecking(false);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === 'PASSWORD_RECOVERY') setRecovering(true);
+      setSession(next);
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (checking) {
+    return (
+      <div className="auth-page">
+        <div className="loading-spinner"></div>
+      </div>
+    );
+  }
+
+  if (!session || recovering) {
+    return <AuthScreen recovery={recovering} onRecovered={() => setRecovering(false)} />;
+  }
+
+  // Keyed by user so switching accounts starts from a clean workspace.
+  return (
+    <Workspace
+      key={session.user.id}
+      user={session.user}
+      onSignOut={() => supabase.auth.signOut()}
+    />
+  );
 }
 
 export default App
