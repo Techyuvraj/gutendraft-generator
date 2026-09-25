@@ -9,6 +9,9 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
     // presses Generate, instead of generating the moment it lands.
     const [pendingImage, setPendingImage] = useState(null);
     const [requirements, setRequirements] = useState('');
+    // Shown inline under the relevant field instead of a browser alert().
+    const [fileError, setFileError] = useState('');
+    const [urlError, setUrlError] = useState('');
     const fileInputRef = useRef(null);
 
     const previewImage = pendingImage || (currentType === 'image' ? currentImage : null);
@@ -40,21 +43,23 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
 
     const handleFile = (file) => {
         if (file.type.startsWith('image/')) {
+            setFileError('');
             const reader = new FileReader();
             reader.onload = (e) => {
                 setPendingImage(e.target.result);
             };
             reader.readAsDataURL(file);
         } else {
-            alert('Please upload an image file.');
+            setFileError(`"${file.name}" is not an image. Upload a PNG, JPG or WebP file.`);
         }
     };
 
     const handleUrlSubmit = () => {
         if (!urlInput.trim()) {
-            alert('Please enter a valid URL');
+            setUrlError('Enter the XD or Figma preview URL first.');
             return;
         }
+        setUrlError('');
         onImageSelect({ type: 'url', content: urlInput, context: urlDescription });
     };
 
@@ -196,6 +201,8 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                     )}
                 </div>
 
+                {fileError && <p className="api-key-error upload-error" role="alert">{fileError}</p>}
+
                 {previewImage && (
                     <div className="upload-requirements">
                         <label htmlFor="design-requirements">
@@ -228,18 +235,25 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                         className="url-input"
                         placeholder="https://xd.adobe.com/view/..."
                         value={urlInput}
-                        onChange={(e) => setUrlInput(e.target.value)}
+                        onChange={(e) => {
+                            setUrlInput(e.target.value);
+                            if (urlError) setUrlError('');
+                        }}
+                        aria-invalid={Boolean(urlError)}
                         style={{
                             width: '100%',
                             padding: '0.75rem',
-                            border: '1px solid var(--border-color)',
+                            border: `1px solid ${urlError ? 'var(--status-error)' : 'var(--border-color)'}`,
                             borderRadius: '8px',
                             outline: 'none',
-                            marginBottom: '1rem',
+                            marginBottom: urlError ? '0.5rem' : '1rem',
                             background: 'var(--bg-input)',
                             color: 'var(--text-primary)'
                         }}
                     />
+                    {urlError && (
+                        <p className="api-key-error" role="alert" style={{ marginBottom: '1rem' }}>{urlError}</p>
+                    )}
 
                     <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                         Short Description / Context (Optional)

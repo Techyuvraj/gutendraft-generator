@@ -14,6 +14,7 @@ import Sidebar from './components/Sidebar';
 import DashboardHeader from './components/DashboardHeader';
 import AuthScreen from './components/AuthScreen';
 import HistoryList from './components/HistoryList';
+import ConfirmDialog from './components/ConfirmDialog';
 import { supabase } from './services/supabase';
 import {
   saveGeneration, updateGeneration, listGenerations, loadGeneration, deleteGeneration,
@@ -40,6 +41,8 @@ function Workspace({ user, onSignOut }) {
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
   const [saveError, setSaveError] = useState('');
+  const [pendingDelete, setPendingDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   // The JSON view and its copy action share one parse.
   const blockJson = React.useMemo(
@@ -107,14 +110,22 @@ function Workspace({ user, onSignOut }) {
     }
   };
 
-  const handleDeleteGeneration = async (item) => {
-    if (!window.confirm('Delete this saved generation? This cannot be undone.')) return;
+  // The trash button only asks; the dialog's confirm does the delete.
+  const handleDeleteGeneration = (item) => setPendingDelete(item);
+
+  const confirmDelete = async () => {
+    const item = pendingDelete;
+    if (!item) return;
+    setDeleting(true);
     try {
       await deleteGeneration(item);
       setHistory(prev => prev.filter(h => h.id !== item.id));
       if (item.id === currentId) setCurrentId(null);
     } catch (err) {
       setSaveError(`Could not delete: ${err.message}`);
+    } finally {
+      setDeleting(false);
+      setPendingDelete(null);
     }
   };
 
@@ -469,6 +480,17 @@ function Workspace({ user, onSignOut }) {
           </div>
         </main>
       </div>
+
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Delete this generation?"
+        message="The saved layout, its design image and its chat history will be removed from your account. This cannot be undone."
+        confirmLabel="Delete"
+        danger
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

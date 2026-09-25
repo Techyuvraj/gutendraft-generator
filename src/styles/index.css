@@ -1242,3 +1242,94 @@ pre {
     padding: 0.35rem;
     border-radius: 6px;
 }
+
+.upload-error {
+    margin-top: 0.75rem;
+}
+
+/* In-app confirm dialog (replaces window.confirm) */
+.confirm-dialog {
+    width: min(420px, calc(100vw - 32px));
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: 0 20px 40px -12px rgb(20 28 37 / 0.35);
+}
+
+.confirm-dialog::backdrop {
+    background: rgb(20 28 37 / 0.45);
+    backdrop-filter: blur(2px);
+}
+
+.confirm-dialog[open] {
+    animation: confirm-dialog-in 0.16s ease-out;
+}
+
+@keyframes confirm-dialog-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .confirm-dialog[open] { animation: none; }
+}
+
+.confirm-dialog-body {
+    padding: 1.5rem;
+}
+
+.confirm-dialog-title {
+    margin: 0 0 0.5rem;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+}
+
+.confirm-dialog-message {
+    margin: 0 0 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-secondary);
+}
+
+.confirm-dialog-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
+.confirm-dialog-cancel {
+    padding: 0.6rem 1.1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.confirm-dialog-confirm {
+    cursor: pointer;
+}
+
+.confirm-dialog-confirm.danger {
+    background: var(--status-error);
+    color: #fff;
+}
+
+.confirm-dialog-confirm.danger:hover {
+    filter: brightness(0.92);
+    background: var(--status-error);
+}
+
+.confirm-dialog button:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.confirm-dialog button:focus-visible {
+    outline: 2px solid var(--accent-primary);
+    outline-offset: 2px;
+}
+
+/* The dark theme's error red is a light tone; white on it fails contrast. */
+[data-theme='dark'] .confirm-dialog-confirm.danger {
+    color: #16222E;
+}
