@@ -39,12 +39,35 @@ const getClient = (providerId) => {
  * to anything more, so from a browser every Gemini call failed before it was
  * sent. Dropping the headers on the way out makes it a request Gemini accepts.
  */
-const fetchWithoutSdkHeaders = (url, init = {}) => {
+const fetchWithoutSdkHeaders = async (url, init = {}) => {
     const headers = new Headers(init.headers);
     [...headers.keys()]
         .filter((name) => name.toLowerCase().startsWith('x-stainless-'))
         .forEach((name) => headers.delete(name));
-    return fetch(url, { ...init, headers });
+    const response = await fetch(url, { ...init, headers });
+    return response.ok ? response : unwrapGeminiError(response);
+};
+
+/*
+ * Gemini sends its error bodies wrapped in an array — [{"error": {...}}] —
+ * where the SDK expects {"error": {...}}. The SDK then finds no error and
+ * reports only "503 status code (no body)". Unwrapping it lets Google's own
+ * reason ("The model is overloaded", "API key not valid") reach the user.
+ */
+const unwrapGeminiError = async (response) => {
+    const text = await response.text();
+    let body = text;
+    try {
+        const parsed = JSON.parse(text);
+        if (Array.isArray(parsed) && parsed[0]?.error) body = JSON.stringify(parsed[0]);
+    } catch {
+        // Not JSON; pass it through untouched.
+    }
+    return new Response(body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+    });
 };
 
 /** Turn an SDK error into something worth showing a user. */
@@ -72,6 +95,17 @@ const describeError = (error, provider) => {
 
     if (badKey) {
         return new Error(`${name} rejected that API key. Check it in the sidebar, or create a new one.`);
+    }
+    /* 5xx means the key was accepted and the provider itself failed — for
+       Gemini usually "The model is overloaded". The SDK has already retried
+       twice by this point, so waiting is the fix, not changing the key. */
+    if (error?.status >= 500) {
+        const reason = error?.error?.message || error?.message?.replace(/^\d{3}\s*/, '');
+        const detail = reason && !/no body/i.test(reason) ? ` (${reason})` : '';
+        return new Error(
+            `${name} is busy or temporarily unavailable${detail}. Your key is fine — ` +
+            `wait a minute and click Try Again, or switch provider in the sidebar.`
+        );
     }
     if (error?.status === 429) {
         return new Error(`${name} rate limit or quota reached for this key. Check your billing, then try again.`);
