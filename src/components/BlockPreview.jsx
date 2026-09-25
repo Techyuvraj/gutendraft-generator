@@ -2,6 +2,41 @@ import React, { useMemo } from 'react';
 import { PREVIEW_STYLESHEETS, PREVIEW_CSS } from '../styles/gutenbergPreview';
 import { applyLayoutClasses } from '../utils/blockLayout';
 
+const TRANSPARENT_PIXEL = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
+
+/*
+ * Replace a cover's placeholder background with a transparent pixel over the
+ * cover's overlay colour, so overlay + stand-in resolve to exactly the colour
+ * the design uses at any dimRatio. The overlay colour arrives either as a
+ * preset class (has-black-background-color) or inline (customOverlayColor,
+ * gradients); copying both covers every form WordPress saves. Background
+ * properties are safe inline here: only size/position ones would fight the
+ * block stylesheet that positions the image.
+ */
+const paintWithOverlayColour = (img, width, height) => {
+  const overlay = img.closest('.wp-block-cover')?.querySelector('.wp-block-cover__background');
+  let found = false;
+
+  overlay?.classList.forEach((cls) => {
+    if (/^has-.+-(background-color|gradient-background)$/.test(cls) || cls === 'has-background-gradient') {
+      img.classList.add(cls);
+      found = true;
+    }
+  });
+  if (overlay?.style.backgroundColor) {
+    img.style.backgroundColor = overlay.style.backgroundColor;
+    found = true;
+  }
+  if (overlay?.style.backgroundImage) {
+    img.style.backgroundImage = overlay.style.backgroundImage;
+    found = true;
+  }
+
+  // No overlay colour to borrow: fall back to a neutral swatch rather than
+  // leaving the cover white behind (usually white) text.
+  img.setAttribute('src', found ? TRANSPARENT_PIXEL : `https://placehold.co/${width}x${height}/64748b/64748b`);
+};
+
 // `thumbnail` renders a static, non-scrolling snapshot for the history list.
 const BlockPreview = ({ code, thumbnail = false }) => {
   const htmlContent = useMemo(() => {
@@ -38,9 +73,10 @@ const BlockPreview = ({ code, thumbnail = false }) => {
 
         if (positionedByBlockCss) {
           // A cover background sits behind real content under a dim overlay.
-          // A labelled placeholder would compete with the heading, so use a
-          // flat swatch and let the cover's own text carry the preview.
-          img.setAttribute('src', `https://placehold.co/${width}x${height}/64748b/64748b`);
+          // Paint the stand-in with the overlay's own colour: any fixed
+          // swatch (it used to be slate grey) shows through a partial
+          // overlay and shifts the section away from the design's colour.
+          paintWithOverlayColour(img, width, height);
         } else {
           const text = `Image ${index + 1}`;
           img.setAttribute('src', `https://placehold.co/${width}x${height}/2563eb/FFF?text=${text}`);
