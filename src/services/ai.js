@@ -76,6 +76,24 @@ const describeError = (error, provider) => {
     return error;
 };
 
+/**
+ * Shared by every prompt that emits core blocks. Without it the model
+ * rebuilds a background photo as a separate wp:image sitting beside a
+ * wp:group, which loses the text-over-image layout.
+ */
+const COVER_BLOCK_RULE = `BACKGROUND IMAGES — MANDATORY:
+          Whenever a section has a photo, illustration or image BEHIND its content (hero banners, CTA strips, full-width image sections with text on top), build that section as ONE wp:cover block.
+          - Put the heading, text and buttons INSIDE the cover's inner container.
+          - Never rebuild a background image as a separate wp:image next to or above a wp:group, and never use a wp:group with a background image for it.
+          - Use a placeholder url (https://placehold.co/1600x800) and pick dimRatio (0-100) and overlayColor/customOverlayColor to match how dark the overlay looks.
+          - Use wp:group only for sections whose background is a plain colour or gradient.
+          Valid markup to follow exactly:
+          <!-- wp:cover {"url":"https://placehold.co/1600x800","dimRatio":50,"overlayColor":"black","minHeight":500,"align":"full","layout":{"type":"constrained"}} -->
+          <div class="wp-block-cover alignfull" style="min-height:500px"><span aria-hidden="true" class="wp-block-cover__background has-black-background-color has-background-dim-50 has-background-dim"></span><img class="wp-block-cover__image-background" alt="" src="https://placehold.co/1600x800" data-object-fit="cover"/><div class="wp-block-cover__inner-container"><!-- wp:heading {"textAlign":"center"} -->
+          <h2 class="wp-block-heading has-text-align-center">Heading</h2>
+          <!-- /wp:heading --></div></div>
+          <!-- /wp:cover -->`;
+
 export const generateGutenbergBlocks = async (input, framework = 'gutenberg', inputType = 'image', context = '', providerId = getProvider()) => {
     const provider = getProviderConfig(providerId);
     let systemPrompt = '';
@@ -105,22 +123,26 @@ export const generateGutenbergBlocks = async (input, framework = 'gutenberg', in
           Your task is to analyze the provided website image and generate the exact Gutenberg Block markup optimized for Astra.
           
           Rules:
-          1. Use core WordPress blocks (wp:group, wp:columns, wp:heading).
+          1. Use core WordPress blocks (wp:group, wp:cover, wp:columns, wp:heading).
           2. Apply Astra-specific utility classes if known (e.g., 'ast-container', 'ast-global-color-*').
           3. Structure layouts using Groups with 'alignfull' or 'alignwide' where appropriate for Astra's layout settings.
-          4. Return ONLY the raw HTML content with Gutenberg comments.`;
+          4. Return ONLY the raw HTML content with Gutenberg comments.
+
+          ${COVER_BLOCK_RULE}`;
     } else {
         // Default Gutenberg Core
         systemPrompt = `You are an expert WordPress Gutenberg developer. 
           Your task is to analyze the provided website image and generate the exact Gutenberg Block markup to replicate it.
           
           Rules:
-          1. Use ONLY core WordPress blocks (wp:group, wp:columns, wp:image, wp:heading, wp:paragraph, wp:buttons).
+          1. Use ONLY core WordPress blocks (wp:group, wp:cover, wp:columns, wp:image, wp:heading, wp:paragraph, wp:buttons).
           2. Use semantic HTML5 tags where possible (section, header, footer) via tagName attributes.
           3. Structure complex layouts using Groups and Columns.
           4. Apply inline styles for specific colors/spacing if standard classes don't fit, but prefer standard alignment.
           5. Return ONLY the raw HTML content with Gutenberg comments. Do not include markdown code fences or explanations.
-          6. Ensure the markup is valid and can be pasted directly into the Code Editor in WordPress.`;
+          6. Ensure the markup is valid and can be pasted directly into the Code Editor in WordPress.
+
+          ${COVER_BLOCK_RULE}`;
     }
 
     const userContent = inputType === 'url' ? [
@@ -187,7 +209,8 @@ export const refineGutenbergBlocks = async (currentCode, userInstruction, provid
           1. Return ONLY the raw HTML content with Gutenberg comments. 
           2. Do not include markdown code fences or explanations.
           3. Maintain the existing structure unless asked to change it.
-          4. Ensure valid block syntax (e.g. <!-- wp:group -->).`
+          4. Ensure valid block syntax (e.g. <!-- wp:group -->).
+          5. Keep existing wp:cover blocks as covers, and when the user asks for a background image, use wp:cover rather than a wp:group or a separate wp:image.`
                 },
                 {
                     role: "user",
