@@ -2,6 +2,20 @@ import { supabase } from './supabase';
 
 const BUCKET = 'designs';
 
+const LIST_COLUMNS_NO_CSS = 'id, created_at, source, framework, template_id, xd_url, image_path, code';
+const LIST_COLUMNS = `${LIST_COLUMNS_NO_CSS}, css`;
+
+/*
+ * The css column was added after launch. If a database has not had that
+ * migration yet, every query naming it fails — which would hide the user's
+ * whole history. Detect that one error and retry without the column, so
+ * history and saving keep working (minus CSS) until the migration runs.
+ */
+const isMissingCssColumn = (error) => {
+    const message = error?.message || '';
+    return /\bcss\b/.test(message) && /does not exist|schema cache/i.test(message);
+};
+
 /** data:image/png;base64,... -> Blob, so the upload keeps the original bytes. */
 const dataUrlToBlob = async (dataUrl) => (await fetch(dataUrl)).blob();
 
@@ -37,34 +51,43 @@ export const saveGeneration = async (userId, {
         }
     }
 
-    const { data, error } = await supabase
-        .from('generations')
-        .insert({
-            user_id: userId,
-            source,
-            framework,
-            provider: provider || null,
-            model: model || null,
-            image_path: imagePath,
-            xd_url: xdUrl || null,
-            context: context || null,
-            template_id: templateId || null,
-            code,
-            css: css || '',
-            chat: chat || [],
-        })
-        .select('id, created_at, source, framework, template_id, xd_url, image_path, code, css')
-        .single();
+    const row = {
+        user_id: userId,
+        source,
+        framework,
+        provider: provider || null,
+        model: model || null,
+        image_path: imagePath,
+        xd_url: xdUrl || null,
+        context: context || null,
+        template_id: templateId || null,
+        code,
+        css: css || '',
+        chat: chat || [],
+    };
+
+    const insert = (withCss) => {
+        const values = { ...row };
+        if (!withCss) delete values.css;
+        return supabase
+            .from('generations')
+            .insert(values)
+            .select(withCss ? LIST_COLUMNS : LIST_COLUMNS_NO_CSS)
+            .single();
+    };
+
+    let { data, error } = await insert(true);
+    if (isMissingCssColumn(error)) ({ data, error } = await insert(false));
     if (error) throw error;
     return data;
 };
 
 /** Persist a refinement or CSS edit: the markup, CSS and the whole chat so far. */
 export const updateGeneration = async (id, { code, css, chat }) => {
-    const { error } = await supabase
-        .from('generations')
-        .update({ code, css: css || '', chat })
-        .eq('id', id);
+    const update = (values) => supabase.from('generations').update(values).eq('id', id);
+
+    let { error } = await update({ code, css: css || '', chat });
+    if (isMissingCssColumn(error)) ({ error } = await update({ code, chat }));
     if (error) throw error;
 };
 
@@ -77,12 +100,15 @@ export const HISTORY_PAGE_SIZE = 5;
  * Asks for one row more than the page to learn whether another page exists.
  */
 export const listGenerations = async (offset = 0, pageSize = HISTORY_PAGE_SIZE) => {
-    const { data, error } = await supabase
+    const query = (columns) => supabase
         .from('generations')
-        .select('id, created_at, source, framework, template_id, xd_url, image_path, code, css')
+        .select(columns)
         .neq('source', 'template')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize);
+
+    let { data, error } = await query(LIST_COLUMNS);
+    if (isMissingCssColumn(error)) ({ data, error } = await query(LIST_COLUMNS_NO_CSS));
     if (error) throw error;
     return { items: data.slice(0, pageSize), hasMore: data.length > pageSize };
 };
