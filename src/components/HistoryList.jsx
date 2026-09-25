@@ -1,4 +1,5 @@
 import React from 'react';
+import GenerationThumbnail from './GenerationThumbnail';
 
 const FRAMEWORK_LABELS = {
     gutenberg: 'Gutenberg',
@@ -31,9 +32,12 @@ const HistoryList = ({ items, loading, error, activeId, onOpen, onDelete }) => {
             {items.map((item) => (
                 <li key={item.id} className={`history-item ${item.id === activeId ? 'active' : ''}`}>
                     <button type="button" className="history-open" onClick={() => onOpen(item.id)}>
-                        <span className="history-name">{describe(item)}</span>
-                        <span className="history-meta mono">
-                            {FRAMEWORK_LABELS[item.framework] || item.framework} · {formatDate(item.created_at)}
+                        <GenerationThumbnail code={item.code} />
+                        <span className="history-text">
+                            <span className="history-name">{describe(item)}</span>
+                            <span className="history-meta mono">
+                                {FRAMEWORK_LABELS[item.framework] || item.framework} · {formatDate(item.created_at)}
+                            </span>
                         </span>
                     </button>
                     <button

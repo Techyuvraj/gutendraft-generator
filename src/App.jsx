@@ -78,6 +78,8 @@ function Workspace({ user, onSignOut }) {
     if (!currentId) return;
     try {
       await updateGeneration(currentId, { code, chat });
+      // Keep the sidebar thumbnail in step with the refined layout.
+      setHistory(prev => prev.map(h => (h.id === currentId ? { ...h, code } : h)));
       setSaveError('');
     } catch (err) {
       console.error('Update failed', err);

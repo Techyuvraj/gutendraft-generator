@@ -52,7 +52,7 @@ export const saveGeneration = async (userId, {
             code,
             chat: chat || [],
         })
-        .select('id, created_at, source, framework, template_id, xd_url, image_path')
+        .select('id, created_at, source, framework, template_id, xd_url, image_path, code')
         .single();
     if (error) throw error;
     return data;
@@ -67,11 +67,11 @@ export const updateGeneration = async (id, { code, chat }) => {
     if (error) throw error;
 };
 
-/** Lightweight list for the sidebar; the markup is fetched only when opened. */
+/** Sidebar list. Includes the markup so each item can render its thumbnail. */
 export const listGenerations = async (limit = 50) => {
     const { data, error } = await supabase
         .from('generations')
-        .select('id, created_at, source, framework, template_id, xd_url, image_path')
+        .select('id, created_at, source, framework, template_id, xd_url, image_path, code')
         .order('created_at', { ascending: false })
         .limit(limit);
     if (error) throw error;

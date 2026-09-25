@@ -1089,7 +1089,7 @@ pre {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 320px;
+    max-height: 520px;
     overflow-y: auto;
 }
 
@@ -1195,4 +1195,50 @@ pre {
 .upload-requirements .btn-primary:disabled {
     opacity: 0.6;
     cursor: wait;
+}
+
+/* History cards: thumbnail of the built layout above the name */
+.history-item {
+    position: relative;
+    overflow: hidden;
+}
+
+.history-open {
+    padding: 0;
+    gap: 0;
+}
+
+.history-thumb {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    background: #fff;
+    border-bottom: 1px solid var(--border-color);
+    pointer-events: none;
+}
+
+.history-thumb-canvas {
+    transform-origin: top left;
+}
+
+.history-thumb-empty {
+    width: 100%;
+    height: 100%;
+    background: var(--bg-card-hover);
+}
+
+.history-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    padding: 0.55rem 2.25rem 0.55rem 0.75rem;
+    min-width: 0;
+}
+
+.history-delete {
+    position: absolute;
+    right: 0.25rem;
+    bottom: 0.5rem;
+    padding: 0.35rem;
+    border-radius: 6px;
 }

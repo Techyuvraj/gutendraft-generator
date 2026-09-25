@@ -2,7 +2,8 @@ import React, { useMemo } from 'react';
 import { PREVIEW_STYLESHEETS, PREVIEW_CSS } from '../styles/gutenbergPreview';
 import { applyLayoutClasses } from '../utils/blockLayout';
 
-const BlockPreview = ({ code }) => {
+// `thumbnail` renders a static, non-scrolling snapshot for the history list.
+const BlockPreview = ({ code, thumbnail = false }) => {
   const htmlContent = useMemo(() => {
     if (!code) return '';
 
@@ -79,7 +80,7 @@ const BlockPreview = ({ code }) => {
         :host {
           display: block;
           height: 100%;
-          overflow-y: auto;
+          overflow-y: ${thumbnail ? 'hidden' : 'auto'};
           background-color: #fff;
         }
 
@@ -160,13 +161,14 @@ const BlockPreview = ({ code }) => {
          <div class="gutenberg-content">${htmlContent}</div>
       </div>
     `;
-  }, [htmlContent]);
+  }, [htmlContent, thumbnail]);
 
   return (
     <div
       ref={containerRef}
       style={{ height: '100%', width: '100%', background: 'white' }}
-      title="Live Preview"
+      title={thumbnail ? undefined : 'Live Preview'}
+      aria-hidden={thumbnail || undefined}
     />
   );
 };
