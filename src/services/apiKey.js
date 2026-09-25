@@ -52,9 +52,18 @@ export const PROVIDERS = {
 export const PROVIDER_IDS = Object.keys(PROVIDERS);
 export const DEFAULT_PROVIDER = 'gemini';
 
-export const getProviderConfig = (providerId) => PROVIDERS[providerId] || PROVIDERS[DEFAULT_PROVIDER];
+/**
+ * A provider's config with `model` resolved to the one the user picked for
+ * it (falling back to the built-in default, kept as `defaultModel`). Every
+ * caller reads the model from here, so a switch applies everywhere at once.
+ */
+export const getProviderConfig = (providerId) => {
+    const base = PROVIDERS[providerId] || PROVIDERS[DEFAULT_PROVIDER];
+    return { ...base, defaultModel: base.model, model: getSelectedModel(base.id) || base.model };
+};
 
 const keyStorageName = (providerId) => `gutendraft.${providerId}_api_key`;
+const modelStorageName = (providerId) => `gutendraft.${providerId}_model`;
 const PROVIDER_STORAGE_KEY = 'gutendraft.provider';
 
 /* localStorage throws in private-browsing / blocked-cookie modes, so every
@@ -85,6 +94,26 @@ export const getProvider = () => {
 export const setProvider = (providerId) => {
     if (!PROVIDERS[providerId]) return false;
     return writeStorage(PROVIDER_STORAGE_KEY, providerId);
+};
+
+/* Model choice is per provider, like the key: each keeps its own. An empty
+   value (or the default itself) means "use the built-in default". */
+export function getSelectedModel(providerId) {
+    return readStorage(modelStorageName(providerId));
+}
+
+export const setSelectedModel = (providerId, model) => {
+    const value = (model || '').trim();
+    const fallback = PROVIDERS[providerId]?.model;
+    if (!value || value === fallback) {
+        try {
+            localStorage.removeItem(modelStorageName(providerId));
+        } catch {
+            /* nothing to clear */
+        }
+        return true;
+    }
+    return writeStorage(modelStorageName(providerId), value);
 };
 
 export const getStoredKey = (providerId) => readStorage(keyStorageName(providerId));

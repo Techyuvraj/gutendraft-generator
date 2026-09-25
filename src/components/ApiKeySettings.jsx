@@ -14,8 +14,10 @@ import {
     detectForeignKey,
     article,
 } from '../services/apiKey';
+import { forgetModels } from '../services/models';
+import ModelPicker from './ModelPicker';
 
-const ApiKeySettings = ({ provider, onProviderChange, onKeyChange }) => {
+const ApiKeySettings = ({ provider, onProviderChange, onKeyChange, onModelChange }) => {
     const config = getProviderConfig(provider);
 
     const [savedKey, setSavedKey] = useState(() => getStoredKey(provider));
@@ -23,6 +25,9 @@ const ApiKeySettings = ({ provider, onProviderChange, onKeyChange }) => {
     const [isEditing, setIsEditing] = useState(() => !getStoredKey(provider));
     const [reveal, setReveal] = useState(false);
     const [error, setError] = useState('');
+    // Bumped when a new key is saved, so the model list is fetched again
+    // with what that key can see.
+    const [keyVersion, setKeyVersion] = useState(0);
 
     const usingEnvKey = !savedKey && isUsingEnvKey(provider);
 
@@ -63,6 +68,8 @@ const ApiKeySettings = ({ provider, onProviderChange, onKeyChange }) => {
             return;
         }
 
+        forgetModels(provider);
+        setKeyVersion(v => v + 1);
         setSavedKey(key);
         setDraft('');
         setReveal(false);
@@ -130,7 +137,13 @@ const ApiKeySettings = ({ provider, onProviderChange, onKeyChange }) => {
                         )}
                     </div>
                 </div>
-                {modelLine}
+                {/* Keyed by provider so each tab starts from its own model. */}
+                <ModelPicker
+                    key={provider}
+                    provider={provider}
+                    keyVersion={keyVersion}
+                    onModelChange={onModelChange}
+                />
             </>
         );
     }

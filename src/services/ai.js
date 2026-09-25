@@ -15,7 +15,7 @@ export class MissingApiKeyError extends Error {
  * Built per call rather than once at module load, so switching provider or
  * saving a key takes effect immediately instead of after a reload.
  */
-const getClient = (providerId) => {
+export const getClient = (providerId) => {
     const provider = getProviderConfig(providerId);
     const apiKey = resolveApiKey(provider.id);
     if (!apiKey) throw new MissingApiKeyError(provider.label);

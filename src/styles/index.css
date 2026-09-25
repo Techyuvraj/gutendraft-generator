@@ -1427,3 +1427,34 @@ pre {
     height: 1px;
     background: var(--border-color);
 }
+
+/* Model switcher under the saved key */
+.model-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    margin-top: 0.75rem;
+}
+
+.model-picker-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.model-picker-head label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.model-picker-input {
+    padding-right: 0.75rem;
+    box-sizing: border-box;
+    font-size: 0.8rem;
+}
+
+.model-picker .api-key-link:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}

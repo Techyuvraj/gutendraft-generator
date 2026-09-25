@@ -34,6 +34,9 @@ function Workspace({ user, onSignOut }) {
   const [framework, setFramework] = useState('gutenberg');
   const [provider, setProvider] = useState(getProvider);
   const [keyReady, setKeyReady] = useState(() => hasApiKey(getProvider()));
+  // The chosen model lives in storage (read through getProviderConfig); this
+  // only re-renders the model badge when the user switches it.
+  const [, setModelVersion] = useState(0);
 
   // The saved row the workspace is showing, so refinements update it in place.
   const [currentId, setCurrentId] = useState(null);
@@ -267,6 +270,7 @@ function Workspace({ user, onSignOut }) {
             provider={provider}
             onProviderChange={setProvider}
             onKeyChange={setKeyReady}
+            onModelChange={() => setModelVersion(v => v + 1)}
           />
         </div>
 
