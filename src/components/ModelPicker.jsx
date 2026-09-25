@@ -3,76 +3,59 @@ import { getProviderConfig, setSelectedModel } from '../services/apiKey';
 import { listModels } from '../services/models';
 
 /**
- * Model switcher for the active provider. The input doubles as a search box
- * over the provider's live list (a <datalist>) and accepts any model id typed
- * by hand, for models the list trims out or that are brand new.
+ * Model switcher for the active provider: a plain dropdown of the models the
+ * user's key can use, fetched live from the provider.
  */
 const ModelPicker = ({ provider, keyVersion, onModelChange }) => {
     const config = getProviderConfig(provider);
-    const listId = useId();
+    const selectId = useId();
 
-    const [draft, setDraft] = useState(config.model);
+    const [selected, setSelected] = useState(config.model);
     const [models, setModels] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState('');
 
+    const load = React.useCallback(async (refresh) => {
+        setLoading(true);
+        setLoadError('');
+        try {
+            setModels(await listModels(provider, { refresh }));
+        } catch (err) {
+            setModels([]);
+            setLoadError(err?.status === 401 || err?.status === 400
+                ? 'Could not list models with this key.'
+                : 'Could not load the model list.');
+        } finally {
+            setLoading(false);
+        }
+    }, [provider]);
+
     // Provider switch or key change: show that provider's model, refetch.
     useEffect(() => {
-        setDraft(getProviderConfig(provider).model);
-        let cancelled = false;
+        setSelected(getProviderConfig(provider).model);
+        load(keyVersion > 0);
+    }, [provider, keyVersion, load]);
 
-        const load = async () => {
-            setLoading(true);
-            setLoadError('');
-            try {
-                const ids = await listModels(provider, { refresh: keyVersion > 0 });
-                if (!cancelled) setModels(ids);
-            } catch (err) {
-                if (!cancelled) {
-                    setModels([]);
-                    setLoadError(err?.status === 401 || err?.status === 400
-                        ? 'Could not list models with this key.'
-                        : 'Could not load the model list.');
-                }
-            } finally {
-                if (!cancelled) setLoading(false);
-            }
-        };
-        load();
-
-        return () => { cancelled = true; };
-    }, [provider, keyVersion]);
-
-    const commit = (value) => {
-        const next = value.trim() || config.defaultModel;
-        setDraft(next);
-        if (next === config.model) return;
+    const choose = (next) => {
+        setSelected(next);
         setSelectedModel(provider, next);
         onModelChange?.(next);
     };
 
-    const refresh = async () => {
-        setLoading(true);
-        setLoadError('');
-        try {
-            setModels(await listModels(provider, { refresh: true }));
-        } catch {
-            setLoadError('Could not load the model list.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const isDefault = config.model === config.defaultModel;
+    /* The current and default models are always offered, even when the live
+       list is unavailable or omits them, so the dropdown never shows a value
+       it cannot select and there is always a way back to the default. */
+    const options = [...new Set([selected, config.defaultModel, ...models])]
+        .sort((a, b) => a.localeCompare(b));
 
     return (
         <div className="model-picker">
             <div className="model-picker-head">
-                <label htmlFor={`${listId}-input`}>Model</label>
+                <label htmlFor={selectId}>Model</label>
                 <button
                     type="button"
                     className="api-key-link"
-                    onClick={refresh}
+                    onClick={() => load(true)}
                     disabled={loading}
                     title="Reload the list from the provider"
                 >
@@ -80,47 +63,26 @@ const ModelPicker = ({ provider, keyVersion, onModelChange }) => {
                 </button>
             </div>
 
-            <input
-                id={`${listId}-input`}
-                className="api-key-input model-picker-input mono"
-                list={listId}
-                value={draft}
-                placeholder={config.defaultModel}
-                spellCheck="false"
-                autoComplete="off"
-                onChange={(e) => {
-                    setDraft(e.target.value);
-                    // Picking from the list is a complete choice; apply it
-                    // at once. Typing waits for Enter or leaving the field.
-                    if (models.includes(e.target.value)) commit(e.target.value);
-                }}
-                onBlur={(e) => commit(e.target.value)}
-                onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                        e.preventDefault();
-                        commit(e.currentTarget.value);
-                    }
-                    if (e.key === 'Escape') setDraft(config.model);
-                }}
-            />
-            <datalist id={listId}>
-                {models.map((id) => <option key={id} value={id} />)}
-            </datalist>
+            <select
+                id={selectId}
+                className="model-picker-select mono"
+                value={selected}
+                onChange={(e) => choose(e.target.value)}
+                disabled={loading && !models.length}
+            >
+                {options.map((id) => (
+                    <option key={id} value={id}>
+                        {id === config.defaultModel ? `${id} (default)` : id}
+                    </option>
+                ))}
+            </select>
 
             <p className="api-key-note">
                 {loadError
-                    ? `${loadError} You can still type a model id.`
-                    : models.length
-                        ? `${models.length} models available. Choose one that accepts images.`
-                        : loading ? 'Fetching available models…' : 'Type a model id.'}
-                {!isDefault && (
-                    <>
-                        {' '}
-                        <button type="button" className="api-key-link" onClick={() => commit(config.defaultModel)}>
-                            Reset to {config.defaultModel}
-                        </button>
-                    </>
-                )}
+                    ? `${loadError} Showing the default model only.`
+                    : loading && !models.length
+                        ? 'Fetching available models…'
+                        : `${models.length} models available. Choose one that accepts images.`}
             </p>
         </div>
     );

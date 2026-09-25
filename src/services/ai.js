@@ -104,7 +104,7 @@ const describeError = (error, provider) => {
         const detail = reason && !/no body/i.test(reason) ? ` (${reason})` : '';
         return new Error(
             `${name} is busy or temporarily unavailable${detail}. Your key is fine — ` +
-            `wait a minute and click Try Again, or switch provider in the sidebar.`
+            `wait a minute and click Try Again, or pick another model in the sidebar.`
         );
     }
     if (error?.status === 429) {
