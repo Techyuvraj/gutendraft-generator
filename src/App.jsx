@@ -40,6 +40,8 @@ function Workspace({ user, onSignOut }) {
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [historyError, setHistoryError] = useState('');
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyLoadingMore, setHistoryLoadingMore] = useState(false);
   const [saveError, setSaveError] = useState('');
   const [pendingDelete, setPendingDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -52,7 +54,9 @@ function Workspace({ user, onSignOut }) {
 
   const refreshHistory = React.useCallback(async () => {
     try {
-      setHistory(await listGenerations());
+      const page = await listGenerations(0);
+      setHistory(page.items);
+      setHistoryHasMore(page.hasMore);
       setHistoryError('');
     } catch (err) {
       setHistoryError(err.message || 'Could not load your saved generations.');
@@ -62,6 +66,25 @@ function Workspace({ user, onSignOut }) {
   }, []);
 
   React.useEffect(() => { refreshHistory(); }, [refreshHistory]);
+
+  /* The offset is simply how many rows are showing: new saves are prepended
+     and deletes removed both here and in the table, so the two stay aligned.
+     The id filter is a guard against a row appearing twice regardless. */
+  const loadMoreHistory = async () => {
+    setHistoryLoadingMore(true);
+    try {
+      const page = await listGenerations(history.length);
+      setHistory(prev => {
+        const seen = new Set(prev.map(h => h.id));
+        return [...prev, ...page.items.filter(h => !seen.has(h.id))];
+      });
+      setHistoryHasMore(page.hasMore);
+    } catch (err) {
+      setSaveError(`Could not load more: ${err.message}`);
+    } finally {
+      setHistoryLoadingMore(false);
+    }
+  };
 
   /* Saving never blocks the result: the user already has their markup, so a
      failed save is reported beside the history rather than as an error. */
@@ -210,7 +233,8 @@ function Workspace({ user, onSignOut }) {
       setGeneratedCode(code);
       setChatMessages(chat);
       setIsLoading(false);
-      persistNew({ source: 'template', framework, templateId, code, chat });
+      // Templates are not saved to My Generations: they are the same
+      // built-in layouts for everyone, not the user's own work.
     }, 600);
   };
 
@@ -331,6 +355,9 @@ function Workspace({ user, onSignOut }) {
             activeId={currentId}
             onOpen={handleOpenGeneration}
             onDelete={handleDeleteGeneration}
+            hasMore={historyHasMore}
+            loadingMore={historyLoadingMore}
+            onLoadMore={loadMoreHistory}
           />
         </div>
 

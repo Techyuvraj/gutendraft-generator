@@ -1089,7 +1089,8 @@ pre {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
-    max-height: 520px;
+    /* No max-height: paging with Load more keeps the list short, and a
+       capped flex column would squash the cards instead of scrolling. */
     overflow-y: auto;
 }
 
@@ -1332,4 +1333,47 @@ pre {
 /* The dark theme's error red is a light tone; white on it fails contrast. */
 [data-theme='dark'] .confirm-dialog-confirm.danger {
     color: #16222E;
+}
+
+/* Every history card is the same fixed height: thumbnail (120px) plus the
+   name row. flex-shrink: 0 stops the column squashing them. */
+.history-item {
+    flex-shrink: 0;
+    height: 172px;
+}
+
+.history-open {
+    height: 100%;
+}
+
+.history-thumb {
+    flex-shrink: 0;
+}
+
+.history-text {
+    flex: 1;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.history-name,
+.history-meta {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-load-more {
+    width: 100%;
+    margin-top: 0.75rem;
+    padding: 0.6rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.history-load-more:disabled {
+    opacity: 0.6;
+    cursor: wait;
 }

@@ -67,15 +67,23 @@ export const updateGeneration = async (id, { code, chat }) => {
     if (error) throw error;
 };
 
-/** Sidebar list. Includes the markup so each item can render its thumbnail. */
-export const listGenerations = async (limit = 50) => {
+export const HISTORY_PAGE_SIZE = 5;
+
+/**
+ * One page of the sidebar list, newest first. Includes the markup so each
+ * item can render its thumbnail. Quick Start templates are excluded: they
+ * are the same built-in layouts for everyone, not the user's own work.
+ * Asks for one row more than the page to learn whether another page exists.
+ */
+export const listGenerations = async (offset = 0, pageSize = HISTORY_PAGE_SIZE) => {
     const { data, error } = await supabase
         .from('generations')
         .select('id, created_at, source, framework, template_id, xd_url, image_path, code')
+        .neq('source', 'template')
         .order('created_at', { ascending: false })
-        .limit(limit);
+        .range(offset, offset + pageSize);
     if (error) throw error;
-    return data;
+    return { items: data.slice(0, pageSize), hasMore: data.length > pageSize };
 };
 
 const blobToDataUrl = (blob) => new Promise((resolve, reject) => {

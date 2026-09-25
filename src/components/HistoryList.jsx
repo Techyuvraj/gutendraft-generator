@@ -20,7 +20,9 @@ const formatDate = (iso) =>
     });
 
 /** The signed-in user's saved generations, newest first. */
-const HistoryList = ({ items, loading, error, activeId, onOpen, onDelete }) => {
+const HistoryList = ({
+    items, loading, error, activeId, onOpen, onDelete, hasMore, loadingMore, onLoadMore,
+}) => {
     if (loading) return <p className="api-key-note">Loading your generations…</p>;
     if (error) return <p className="api-key-error">{error}</p>;
     if (!items.length) {
@@ -28,7 +30,8 @@ const HistoryList = ({ items, loading, error, activeId, onOpen, onDelete }) => {
     }
 
     return (
-        <ul className="history-list">
+        <>
+            <ul className="history-list">
             {items.map((item) => (
                 <li key={item.id} className={`history-item ${item.id === activeId ? 'active' : ''}`}>
                     <button type="button" className="history-open" onClick={() => onOpen(item.id)}>
@@ -51,7 +54,19 @@ const HistoryList = ({ items, loading, error, activeId, onOpen, onDelete }) => {
                     </button>
                 </li>
             ))}
-        </ul>
+            </ul>
+
+            {hasMore && (
+                <button
+                    type="button"
+                    className="btn-icon history-load-more"
+                    onClick={onLoadMore}
+                    disabled={loadingMore}
+                >
+                    {loadingMore ? 'Loading…' : 'Load more'}
+                </button>
+            )}
+        </>
     );
 };
 
