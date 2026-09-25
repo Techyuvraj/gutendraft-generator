@@ -14,6 +14,8 @@ export const PROVIDERS = {
         keyHint: 'Gemini keys start with "AIza".',
         consoleUrl: 'https://aistudio.google.com/apikey',
         consoleLabel: 'Google AI Studio',
+        // Its CORS preflight rejects the SDK's X-Stainless-* headers (see ai.js).
+        stripSdkHeaders: true,
     },
     openai: {
         id: 'openai',

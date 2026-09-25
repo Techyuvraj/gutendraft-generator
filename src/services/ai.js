@@ -28,8 +28,23 @@ const getClient = (providerId) => {
         apiKey,
         baseURL: provider.baseURL,
         defaultHeaders: headers,
+        fetch: provider.stripSdkHeaders ? fetchWithoutSdkHeaders : undefined,
         dangerouslyAllowBrowser: true // The key is the user's own and never leaves their browser except to the provider.
     });
+};
+
+/*
+ * The SDK adds X-Stainless-* telemetry headers to every request. Gemini's
+ * CORS preflight allows only authorization and content-type, and answers 403
+ * to anything more, so from a browser every Gemini call failed before it was
+ * sent. Dropping the headers on the way out makes it a request Gemini accepts.
+ */
+const fetchWithoutSdkHeaders = (url, init = {}) => {
+    const headers = new Headers(init.headers);
+    [...headers.keys()]
+        .filter((name) => name.toLowerCase().startsWith('x-stainless-'))
+        .forEach((name) => headers.delete(name));
+    return fetch(url, { ...init, headers });
 };
 
 /** Turn an SDK error into something worth showing a user. */
@@ -47,7 +62,12 @@ const describeError = (error, provider) => {
         typeof error?.error === 'string' ? error.error : '',
     ].filter(Boolean).join(' ');
 
-    const badKey = error?.status === 401 ||
+    /* Gemini's 400 for a bad key reaches the browser with no readable body
+       ("400 status code (no body)"), so there is nothing to match on. A bare
+       400 from Gemini is almost always the key, so treat it as one. */
+    const bareGemini400 = provider.id === 'gemini' && error?.status === 400 && !error?.error;
+
+    const badKey = error?.status === 401 || bareGemini400 ||
         (error?.status === 400 && /api[ _-]?key/i.test(haystack));
 
     if (badKey) {
