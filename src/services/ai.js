@@ -82,16 +82,19 @@ const describeError = (error, provider) => {
  * wp:group, which loses the text-over-image layout.
  */
 const COVER_BLOCK_RULE = `BACKGROUND IMAGES — MANDATORY:
-          Whenever a section has a photo, illustration or image BEHIND its content (hero banners, CTA strips, full-width image sections with text on top), build that section as ONE wp:cover block.
+          Whenever a section has a photo, illustration or image BEHIND its content (hero banners, CTA strips, full-width image sections with text on top), build that section as ONE wp:cover block rendered as a <section> element.
+          - Always set "tagName":"section" so the wrapper is <section class="wp-block-cover ...">, not <div>.
+          - Always give it BOTH a background image AND a background colour:
+            * image: "url" with a placeholder (https://placehold.co/1600x800) plus the <img class="wp-block-cover__image-background"> element.
+            * colour: "customOverlayColor" set to the hex colour sampled from the design's overlay/tint (or its dominant dark tone if there is no visible tint), with "dimRatio" (0-100) matching how strongly it covers the image.
           - Put the heading, text and buttons INSIDE the cover's inner container.
           - Never rebuild a background image as a separate wp:image next to or above a wp:group, and never use a wp:group with a background image for it.
-          - Use a placeholder url (https://placehold.co/1600x800) and pick dimRatio (0-100) and overlayColor/customOverlayColor to match how dark the overlay looks.
-          - Use wp:group only for sections whose background is a plain colour or gradient.
-          Valid markup to follow exactly:
-          <!-- wp:cover {"url":"https://placehold.co/1600x800","dimRatio":50,"overlayColor":"black","minHeight":500,"align":"full","layout":{"type":"constrained"}} -->
-          <div class="wp-block-cover alignfull" style="min-height:500px"><span aria-hidden="true" class="wp-block-cover__background has-black-background-color has-background-dim-50 has-background-dim"></span><img class="wp-block-cover__image-background" alt="" src="https://placehold.co/1600x800" data-object-fit="cover"/><div class="wp-block-cover__inner-container"><!-- wp:heading {"textAlign":"center"} -->
+          - Use wp:group (tagName "section") only for sections whose background is a plain colour or gradient with no image.
+          Valid markup to follow exactly (swap the colour, dimRatio, minHeight and content to match the design):
+          <!-- wp:cover {"url":"https://placehold.co/1600x800","dimRatio":60,"customOverlayColor":"#1e293b","minHeight":500,"tagName":"section","align":"full","layout":{"type":"constrained"}} -->
+          <section class="wp-block-cover alignfull" style="min-height:500px"><span aria-hidden="true" class="wp-block-cover__background has-background-dim-60 has-background-dim" style="background-color:#1e293b"></span><img class="wp-block-cover__image-background" alt="" src="https://placehold.co/1600x800" data-object-fit="cover"/><div class="wp-block-cover__inner-container"><!-- wp:heading {"textAlign":"center"} -->
           <h2 class="wp-block-heading has-text-align-center">Heading</h2>
-          <!-- /wp:heading --></div></div>
+          <!-- /wp:heading --></div></section>
           <!-- /wp:cover -->`;
 
 export const generateGutenbergBlocks = async (input, framework = 'gutenberg', inputType = 'image', context = '', providerId = getProvider()) => {
@@ -210,7 +213,7 @@ export const refineGutenbergBlocks = async (currentCode, userInstruction, provid
           2. Do not include markdown code fences or explanations.
           3. Maintain the existing structure unless asked to change it.
           4. Ensure valid block syntax (e.g. <!-- wp:group -->).
-          5. Keep existing wp:cover blocks as covers, and when the user asks for a background image, use wp:cover rather than a wp:group or a separate wp:image.`
+          5. Keep existing wp:cover blocks as covers, and when the user asks for a background image, use a wp:cover with "tagName":"section", a background image url and a customOverlayColor — not a wp:group or a separate wp:image.`
                 },
                 {
                     role: "user",
