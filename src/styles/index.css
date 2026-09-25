@@ -1151,3 +1151,48 @@ pre {
 .history-delete:hover {
     color: var(--status-error);
 }
+
+/* Requirements prompt shown under a dropped design, before generating */
+.upload-requirements {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.upload-requirements label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.upload-requirements textarea {
+    width: 100%;
+    min-height: 90px;
+    padding: 0.75rem;
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    outline: none;
+    resize: vertical;
+    font-family: inherit;
+    font-size: 0.875rem;
+    background: var(--bg-input);
+    color: var(--text-primary);
+    transition: border-color 0.2s;
+}
+
+.upload-requirements textarea:focus {
+    border-color: var(--accent-primary);
+}
+
+.upload-requirements .btn-primary {
+    width: 100%;
+    padding: 0.75rem;
+    cursor: pointer;
+}
+
+.upload-requirements .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}

@@ -272,6 +272,7 @@ function Workspace({ user, onSignOut }) {
             currentImage={image || xdUrl}
             currentType={inputType}
             compact={!!(image || xdUrl)}
+            isLoading={isLoading}
           />
         </div>
 

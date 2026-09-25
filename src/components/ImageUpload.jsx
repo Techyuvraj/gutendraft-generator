@@ -1,11 +1,17 @@
 import React, { useState, useRef } from 'react';
 
-const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'image' }) => {
+const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'image', isLoading = false }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [activeTab, setActiveTab] = useState('upload'); // 'upload' | 'url'
     const [urlInput, setUrlInput] = useState('');
     const [urlDescription, setUrlDescription] = useState('');
+    // A dropped image waits here until the user adds any requirements and
+    // presses Generate, instead of generating the moment it lands.
+    const [pendingImage, setPendingImage] = useState(null);
+    const [requirements, setRequirements] = useState('');
     const fileInputRef = useRef(null);
+
+    const previewImage = pendingImage || (currentType === 'image' ? currentImage : null);
 
     const handleDragOver = (e) => {
         e.preventDefault();
@@ -36,7 +42,7 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
         if (file.type.startsWith('image/')) {
             const reader = new FileReader();
             reader.onload = (e) => {
-                onImageSelect({ type: 'image', content: e.target.result });
+                setPendingImage(e.target.result);
             };
             reader.readAsDataURL(file);
         } else {
@@ -50,6 +56,12 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
             return;
         }
         onImageSelect({ type: 'url', content: urlInput, context: urlDescription });
+    };
+
+    const handleImageGenerate = () => {
+        if (!previewImage) return;
+        onImageSelect({ type: 'image', content: previewImage, context: requirements.trim() });
+        setPendingImage(null);
     };
 
     return (
@@ -90,6 +102,7 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
             )}
 
             {activeTab === 'upload' ? (
+                <>
                 <div
                     className={`upload-zone ${isDragging ? 'dragging' : ''}`}
                     onDragOver={handleDragOver}
@@ -116,10 +129,10 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                         onChange={handleFileSelect}
                     />
 
-                    {currentImage && currentType === 'image' ? (
+                    {previewImage ? (
                         <div style={{ position: 'relative' }}>
                             <img
-                                src={currentImage}
+                                src={previewImage}
                                 alt="Uploaded Design"
                                 style={{
                                     maxWidth: '100%',
@@ -182,6 +195,29 @@ const ImageUpload = ({ onImageSelect, compact, currentImage, currentType = 'imag
                         </div>
                     )}
                 </div>
+
+                {previewImage && (
+                    <div className="upload-requirements">
+                        <label htmlFor="design-requirements">
+                            Specific requirements (optional)
+                        </label>
+                        <textarea
+                            id="design-requirements"
+                            placeholder="e.g. Use a cover block for the hero, 3 equal columns for the features, keep buttons left-aligned..."
+                            value={requirements}
+                            onChange={(e) => setRequirements(e.target.value)}
+                        />
+                        <button
+                            type="button"
+                            onClick={handleImageGenerate}
+                            className="btn-primary"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? 'Generating…' : pendingImage ? 'Generate Blocks' : 'Regenerate'}
+                        </button>
+                    </div>
+                )}
+                </>
             ) : (
                 <div style={{ padding: '1.5rem', background: 'var(--dropzone-bg)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                     <label style={{ display: 'block', marginBottom: '0.75rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>

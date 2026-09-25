@@ -154,7 +154,11 @@ export const generateGutenbergBlocks = async (input, framework = 'gutenberg', in
             text: `I have a design at this URL: ${input}. ${context ? `\n\nUser Description/Context: ${context}` : ''}\n\nSince you cannot view external links directly, please generate a modern, high-quality Gutenberg layout based on the user's description (if provided) or infer it from the URL structure. If a description is present, PRIORITIZE it accurately.`
         }
     ] : [
-        { type: "text", text: `Convert this design into ${framework === 'spectra' ? 'Spectra' : 'Gutenberg'} blocks.` },
+        {
+            type: "text",
+            text: `Convert this design into ${framework === 'spectra' ? 'Spectra' : 'Gutenberg'} blocks.` +
+                (context ? `\n\nSPECIFIC REQUIREMENTS FROM THE USER — follow these exactly; where they conflict with the image or the default rules, the requirements win:\n${context}` : '')
+        },
         {
             type: "image_url",
             image_url: {

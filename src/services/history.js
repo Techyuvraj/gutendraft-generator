@@ -78,7 +78,18 @@ export const listGenerations = async (limit = 50) => {
     return data;
 };
 
-/** Full row plus a short-lived signed URL for its design image, if any. */
+const blobToDataUrl = (blob) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+});
+
+/**
+ * Full row plus its design image as a data URL. A data URL rather than a
+ * signed link, so "Regenerate" can send it to any provider and re-save it
+ * exactly like a fresh upload.
+ */
 export const loadGeneration = async (id) => {
     const { data, error } = await supabase
         .from('generations')
@@ -89,10 +100,8 @@ export const loadGeneration = async (id) => {
 
     let imageUrl = null;
     if (data.image_path) {
-        const { data: signed } = await supabase.storage
-            .from(BUCKET)
-            .createSignedUrl(data.image_path, 60 * 60);
-        imageUrl = signed?.signedUrl || null;
+        const { data: blob } = await supabase.storage.from(BUCKET).download(data.image_path);
+        if (blob) imageUrl = await blobToDataUrl(blob);
     }
     return { ...data, imageUrl };
 };
