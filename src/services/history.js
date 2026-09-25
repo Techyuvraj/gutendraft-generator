@@ -26,7 +26,7 @@ const uploadDesignImage = async (userId, dataUrl) => {
  * fails, the markup is still worth keeping, so the row is saved without it.
  */
 export const saveGeneration = async (userId, {
-    source, framework, provider, model, image, xdUrl, context, templateId, code, chat,
+    source, framework, provider, model, image, xdUrl, context, templateId, code, css, chat,
 }) => {
     let imagePath = null;
     if (source === 'image' && image?.startsWith('data:')) {
@@ -50,19 +50,20 @@ export const saveGeneration = async (userId, {
             context: context || null,
             template_id: templateId || null,
             code,
+            css: css || '',
             chat: chat || [],
         })
-        .select('id, created_at, source, framework, template_id, xd_url, image_path, code')
+        .select('id, created_at, source, framework, template_id, xd_url, image_path, code, css')
         .single();
     if (error) throw error;
     return data;
 };
 
-/** Persist a refinement: the new markup and the whole chat so far. */
-export const updateGeneration = async (id, { code, chat }) => {
+/** Persist a refinement or CSS edit: the markup, CSS and the whole chat so far. */
+export const updateGeneration = async (id, { code, css, chat }) => {
     const { error } = await supabase
         .from('generations')
-        .update({ code, chat })
+        .update({ code, css: css || '', chat })
         .eq('id', id);
     if (error) throw error;
 };
@@ -78,7 +79,7 @@ export const HISTORY_PAGE_SIZE = 5;
 export const listGenerations = async (offset = 0, pageSize = HISTORY_PAGE_SIZE) => {
     const { data, error } = await supabase
         .from('generations')
-        .select('id, created_at, source, framework, template_id, xd_url, image_path, code')
+        .select('id, created_at, source, framework, template_id, xd_url, image_path, code, css')
         .neq('source', 'template')
         .order('created_at', { ascending: false })
         .range(offset, offset + pageSize);

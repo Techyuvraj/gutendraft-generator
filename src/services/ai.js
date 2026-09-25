@@ -153,6 +153,47 @@ const COVER_BLOCK_RULE = `BACKGROUND IMAGES — MANDATORY:
           <!-- /wp:heading --></div></section>
           <!-- /wp:cover -->`;
 
+/*
+ * Every response is two labelled parts, so the markup and any supporting CSS
+ * come back separately: the markup goes into the WordPress code editor, the
+ * CSS into Additional CSS, and the preview applies both.
+ */
+const BLOCKS_MARKER = '===BLOCKS===';
+const CSS_MARKER = '===CSS===';
+
+const OUTPUT_FORMAT_RULE = `OUTPUT FORMAT — MANDATORY:
+          Reply with exactly two parts, in this order, and nothing else (no markdown fences, no explanations):
+          ${BLOCKS_MARKER}
+          <the complete Gutenberg block markup>
+          ${CSS_MARKER}
+          <custom CSS, or nothing>
+
+          CUSTOM CSS RULES:
+          - First get as close as possible with block settings (layout, spacing, colours, typography). Add CSS ONLY for what blocks cannot express — e.g. exact grid layouts, overlaps, custom widths, decorative borders, hover states, responsive tweaks.
+          - Scope every rule to a class you add to the block through its "className" attribute (which also goes in the element's class list), using the prefix "gd-", e.g. "className":"gd-hero" -> .gd-hero .wp-block-heading { ... }.
+          - Never style html, body, :root or bare element selectors, and never target WordPress core classes on their own (always under a gd- class), so the CSS cannot leak into the rest of a site.
+          - Plain CSS only (no Sass, no @import). Include @media queries for tablet/mobile when the layout needs them.
+          - If blocks alone already match the design, leave the CSS part empty.`;
+
+/** Split a model reply into { code, css }. A reply with no markers is all markup. */
+const parseModelOutput = (raw) => {
+    const content = (raw || '')
+        .replace(/```(?:html|css|xml)?/gi, '')
+        .trim();
+
+    const blocksAt = content.indexOf(BLOCKS_MARKER);
+    const cssAt = content.indexOf(CSS_MARKER);
+
+    if (blocksAt === -1 && cssAt === -1) return { code: content, css: '', hasCss: false };
+
+    const codeStart = blocksAt === -1 ? 0 : blocksAt + BLOCKS_MARKER.length;
+    const codeEnd = cssAt === -1 || cssAt < codeStart ? content.length : cssAt;
+    const code = content.slice(codeStart, codeEnd).trim();
+    const css = cssAt === -1 ? '' : content.slice(cssAt + CSS_MARKER.length).trim();
+
+    return { code, css, hasCss: cssAt !== -1 };
+};
+
 export const generateGutenbergBlocks = async (input, framework = 'gutenberg', inputType = 'image', context = '', providerId = getProvider()) => {
     const provider = getProviderConfig(providerId);
     let systemPrompt = '';
@@ -204,6 +245,8 @@ export const generateGutenbergBlocks = async (input, framework = 'gutenberg', in
           ${COVER_BLOCK_RULE}`;
     }
 
+    systemPrompt += `\n\n          ${OUTPUT_FORMAT_RULE}`;
+
     const userContent = inputType === 'url' ? [
         {
             type: "text",
@@ -240,22 +283,19 @@ export const generateGutenbergBlocks = async (input, framework = 'gutenberg', in
                 },
             ],
             temperature: 0.1,
-            max_tokens: 4000,
+            // Markup plus CSS needs more room than markup alone.
+            max_tokens: 8000,
         });
 
-        let content = response.choices[0].message.content;
-
-        // Clean up markdown if present
-        content = content.replace(/```html/g, '').replace(/```/g, '').trim();
-
-        return content;
+        return parseModelOutput(response.choices[0].message.content);
     } catch (error) {
         console.error("Generation error:", error);
         throw describeError(error, provider);
     }
 };
 
-export const refineGutenbergBlocks = async (currentCode, userInstruction, providerId = getProvider()) => {
+/** Returns { code, css }: the revised markup and the full revised CSS. */
+export const refineGutenbergBlocks = async (currentCode, userInstruction, providerId = getProvider(), currentCss = '') => {
     const provider = getProviderConfig(providerId);
     const client = getClient(provider.id);
 
@@ -273,21 +313,24 @@ export const refineGutenbergBlocks = async (currentCode, userInstruction, provid
           2. Do not include markdown code fences or explanations.
           3. Maintain the existing structure unless asked to change it.
           4. Ensure valid block syntax (e.g. <!-- wp:group -->).
-          5. Keep existing wp:cover blocks as covers, and when the user asks for a background image, use a wp:cover with "tagName":"section", a background image url and a customOverlayColor — not a wp:group or a separate wp:image.`
+          5. Keep existing wp:cover blocks as covers, and when the user asks for a background image, use a wp:cover with "tagName":"section", a background image url and a customOverlayColor — not a wp:group or a separate wp:image.
+          6. Return the COMPLETE CSS in the CSS part — the existing rules plus your changes — not just a diff. Keep existing gd- classes and their rules unless the change needs them gone.
+
+          ${OUTPUT_FORMAT_RULE}`
                 },
                 {
                     role: "user",
-                    content: `CURRENT CODE:\n\n${currentCode}\n\nINSTRUCTION: ${userInstruction}`
+                    content: `CURRENT BLOCK MARKUP:\n\n${currentCode}\n\nCURRENT CUSTOM CSS:\n\n${currentCss || '(none)'}\n\nINSTRUCTION: ${userInstruction}`
                 },
             ],
             temperature: 0.1,
-            max_tokens: 4000,
+            max_tokens: 8000,
         });
 
-        let content = response.choices[0].message.content;
-        content = content.replace(/```html/g, '').replace(/```/g, '').trim();
-
-        return content;
+        const { code, css, hasCss } = parseModelOutput(response.choices[0].message.content);
+        // A reply that skipped the CSS part leaves the existing CSS alone
+        // rather than silently wiping it.
+        return { code, css: hasCss ? css : currentCss };
     } catch (error) {
         console.error("Refinement error:", error);
         throw describeError(error, provider);

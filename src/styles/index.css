@@ -1478,3 +1478,43 @@ pre {
     opacity: 0.6;
     cursor: wait;
 }
+
+/* Custom CSS tab: note above an editable code area that fills the panel */
+.css-tab {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 0.75rem;
+}
+
+.css-tab-note {
+    margin: 0;
+    padding: 0.6rem 0.75rem;
+    font-size: 0.8rem;
+    line-height: 1.5;
+    color: var(--text-secondary);
+    background: var(--accent-light);
+    border-radius: 8px;
+}
+
+.css-tab-note strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.css-tab .code-textarea::placeholder {
+    color: var(--code-text);
+    opacity: 0.45;
+}
+
+/* Marks the Custom CSS tab when the generation has CSS */
+.tab-dot {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-left: 0.4rem;
+    border-radius: 50%;
+    background: var(--status-ok);
+    vertical-align: middle;
+}

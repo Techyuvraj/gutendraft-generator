@@ -23,8 +23,13 @@ create table if not exists public.generations (
     template_id text,          -- for Quick Start templates
 
     code        text not null, -- the current block markup
+    css         text not null default '', -- custom CSS for Additional CSS
     chat        jsonb not null default '[]'::jsonb
 );
+
+-- Added after the first release; brings existing tables up to date.
+alter table public.generations
+    add column if not exists css text not null default '';
 
 create index if not exists generations_user_created_idx
     on public.generations (user_id, created_at desc);

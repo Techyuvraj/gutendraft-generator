@@ -35,7 +35,7 @@ const HistoryList = ({
             {items.map((item) => (
                 <li key={item.id} className={`history-item ${item.id === activeId ? 'active' : ''}`}>
                     <button type="button" className="history-open" onClick={() => onOpen(item.id)}>
-                        <GenerationThumbnail code={item.code} />
+                        <GenerationThumbnail code={item.code} css={item.css} />
                         <span className="history-text">
                             <span className="history-name">{describe(item)}</span>
                             <span className="history-meta mono">

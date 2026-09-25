@@ -25,6 +25,8 @@ function Workspace({ user, onSignOut }) {
   const [inputType, setInputType] = useState('image'); // 'image' | 'url'
   const [xdUrl, setXdUrl] = useState('');
   const [generatedCode, setGeneratedCode] = useState('');
+  // Custom CSS the AI added for what blocks alone could not lay out.
+  const [customCss, setCustomCss] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('preview');
@@ -103,12 +105,12 @@ function Workspace({ user, onSignOut }) {
     }
   };
 
-  const persistUpdate = async (code, chat) => {
+  const persistUpdate = async (code, css, chat) => {
     if (!currentId) return;
     try {
-      await updateGeneration(currentId, { code, chat });
+      await updateGeneration(currentId, { code, css, chat });
       // Keep the sidebar thumbnail in step with the refined layout.
-      setHistory(prev => prev.map(h => (h.id === currentId ? { ...h, code } : h)));
+      setHistory(prev => prev.map(h => (h.id === currentId ? { ...h, code, css } : h)));
       setSaveError('');
     } catch (err) {
       console.error('Update failed', err);
@@ -127,6 +129,7 @@ function Workspace({ user, onSignOut }) {
       setImage(row.source === 'image' ? row.imageUrl : null);
       setXdUrl(row.source === 'url' ? row.xd_url || '' : '');
       setGeneratedCode(row.code);
+      setCustomCss(row.css || '');
       setChatMessages(Array.isArray(row.chat) ? row.chat : []);
       setActiveTab('preview');
     } catch (err) {
@@ -167,6 +170,7 @@ function Workspace({ user, onSignOut }) {
     setXdUrl('');
     setInputType('image');
     setGeneratedCode('');
+    setCustomCss('');
     setChatMessages([]);
     setError(null);
     setIsLoading(false);
@@ -195,13 +199,15 @@ function Workspace({ user, onSignOut }) {
     setIsLoading(true);
     setError(null);
     setGeneratedCode('');
+    setCustomCss('');
     setChatMessages([]); // Reset chat on new upload
     setCurrentId(null);
 
     try {
-      const code = await generateGutenbergBlocks(content, framework, type, context, provider);
+      const { code, css } = await generateGutenbergBlocks(content, framework, type, context, provider);
       const chat = [{ role: 'ai', content: type === 'url' ? 'I analyzed the design from using the URL and your description. How can I refine it?' : 'I rendered the initial blocks based on your design. How can I refine it?' }];
       setGeneratedCode(code);
+      setCustomCss(css);
       setChatMessages(chat);
       persistNew({
         source: type,
@@ -212,6 +218,7 @@ function Workspace({ user, onSignOut }) {
         xdUrl: type === 'url' ? content : null,
         context,
         code,
+        css,
         chat,
       });
     } catch (err) {
@@ -223,6 +230,7 @@ function Workspace({ user, onSignOut }) {
   const handleTemplateSelect = (templateId) => {
     setIsLoading(true);
     setGeneratedCode('');
+    setCustomCss('');
     setError(null);
     setChatMessages([]);
     setImage(null); // Clear image if a template is selected
@@ -248,11 +256,12 @@ function Workspace({ user, onSignOut }) {
     setIsRefining(true);
 
     try {
-      const updatedCode = await refineGutenbergBlocks(generatedCode, userPrompt, provider);
+      const { code: updatedCode, css: updatedCss } = await refineGutenbergBlocks(generatedCode, userPrompt, provider, customCss);
       const chat = [...newHistory, { role: 'ai', content: 'Code updated successfully!' }];
       setGeneratedCode(updatedCode);
       setChatMessages(chat);
-      persistUpdate(updatedCode, chat);
+      setCustomCss(updatedCss);
+      persistUpdate(updatedCode, updatedCss, chat);
     } catch (err) {
       setChatMessages([...newHistory, { role: 'ai', content: 'Sorry, I failed to update the code. Please try again.' }]);
     } finally {
@@ -444,6 +453,13 @@ function Workspace({ user, onSignOut }) {
                         Block JSON
                       </button>
                       <button
+                        className={`tab ${activeTab === 'css' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('css')}
+                      >
+                        Custom CSS
+                        {customCss.trim() && <span className="tab-dot" aria-label="has custom CSS" />}
+                      </button>
+                      <button
                         className={`tab ${activeTab === 'chat' ? 'active' : ''}`}
                         onClick={() => setActiveTab('chat')}
                       >
@@ -456,6 +472,9 @@ function Workspace({ user, onSignOut }) {
                         )}
                         {activeTab === 'json' && (
                           <CopyButton value={blockJson} title="Copy block JSON" />
+                        )}
+                        {activeTab === 'css' && customCss.trim() && (
+                          <CopyButton value={customCss} title="Copy custom CSS" />
                         )}
                       </div>
                     </div>
@@ -474,7 +493,7 @@ function Workspace({ user, onSignOut }) {
                       {activeTab === 'preview' && (
                         <div className="code-viewer-container" style={{ background: 'white', border: 'none', borderRadius: '0', margin: '0.5rem' }}>
                           <div style={{ height: '100%', overflowY: 'auto' }}>
-                            <Template code={generatedCode} />
+                            <Template code={generatedCode} css={customCss} />
                           </div>
                         </div>
                       )}
@@ -486,6 +505,27 @@ function Workspace({ user, onSignOut }) {
                             value={blockJson}
                             readOnly
                           />
+                        </div>
+                      )}
+
+                      {activeTab === 'css' && (
+                        <div className="css-tab" style={{ margin: '0.5rem' }}>
+                          <p className="css-tab-note">
+                            {customCss.trim()
+                              ? <>Styles the blocks could not express on their own. Paste into <strong>Appearance → Customize → Additional CSS</strong> (or Site Editor → Styles → Additional CSS). Edits here update the Live Preview.</>
+                              : <>No custom CSS was needed — the blocks match the design on their own. You can add your own rules here, or ask the AI Assistant for CSS changes; either shows in the Live Preview.</>}
+                          </p>
+                          <div className="code-viewer-container">
+                            <textarea
+                              className="code-textarea"
+                              value={customCss}
+                              spellCheck="false"
+                              placeholder="/* e.g. .gd-hero .wp-block-heading { letter-spacing: -0.02em; } */"
+                              onChange={(e) => setCustomCss(e.target.value)}
+                              // Saved on leaving the field, not per keystroke.
+                              onBlur={() => persistUpdate(generatedCode, customCss, chatMessages)}
+                            />
+                          </div>
                         </div>
                       )}
 

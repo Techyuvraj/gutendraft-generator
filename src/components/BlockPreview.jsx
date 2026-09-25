@@ -38,7 +38,8 @@ const paintWithOverlayColour = (img, width, height) => {
 };
 
 // `thumbnail` renders a static, non-scrolling snapshot for the history list.
-const BlockPreview = ({ code, thumbnail = false }) => {
+// `css` is the generation's custom CSS, applied on top of the block styles.
+const BlockPreview = ({ code, css = '', thumbnail = false }) => {
   const htmlContent = useMemo(() => {
     if (!code) return '';
 
@@ -197,7 +198,17 @@ const BlockPreview = ({ code, thumbnail = false }) => {
          <div class="gutenberg-content">${htmlContent}</div>
       </div>
     `;
-  }, [htmlContent, thumbnail]);
+
+    // The generation's custom CSS goes last so it wins over the base preview
+    // styles, as Additional CSS does on a real site. Set as textContent, so
+    // nothing in it can break out of the <style> element.
+    if (css) {
+      const custom = document.createElement('style');
+      custom.dataset.source = 'custom-css';
+      custom.textContent = css;
+      shadowRootRef.current.insertBefore(custom, shadowRootRef.current.querySelector('.block-preview-viewport'));
+    }
+  }, [htmlContent, thumbnail, css]);
 
   return (
     <div

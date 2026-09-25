@@ -11,7 +11,7 @@ const THUMB_HEIGHT = 120;
  * Miniature of a saved generation's markup. It renders only once it scrolls
  * into view, so a long history does not build dozens of previews up front.
  */
-const GenerationThumbnail = ({ code }) => {
+const GenerationThumbnail = ({ code, css }) => {
     const frameRef = useRef(null);
     const [visible, setVisible] = useState(false);
     const [scale, setScale] = useState(0.25);
@@ -51,7 +51,7 @@ const GenerationThumbnail = ({ code }) => {
                         transform: `scale(${scale})`,
                     }}
                 >
-                    <BlockPreview code={code} thumbnail />
+                    <BlockPreview code={code} css={css} thumbnail />
                 </div>
             ) : (
                 <div className="history-thumb-empty" />
