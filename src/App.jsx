@@ -20,7 +20,7 @@ import {
   saveGeneration, updateGeneration, listGenerations, loadGeneration, deleteGeneration,
 } from './services/history';
 
-function Workspace({ user, onSignOut }) {
+function Workspace({ user, onSignOut, onSignInClick }) {
   const [image, setImage] = useState(null);
   const [inputType, setInputType] = useState('image'); // 'image' | 'url'
   const [xdUrl, setXdUrl] = useState('');
@@ -58,6 +58,11 @@ function Workspace({ user, onSignOut }) {
   );
 
   const refreshHistory = React.useCallback(async () => {
+    if (!user) {
+      setHistory([]);
+      setHistoryLoading(false);
+      return;
+    }
     try {
       const page = await listGenerations(0);
       setHistory(page.items);
@@ -68,7 +73,7 @@ function Workspace({ user, onSignOut }) {
     } finally {
       setHistoryLoading(false);
     }
-  }, []);
+  }, [user]);
 
   React.useEffect(() => { refreshHistory(); }, [refreshHistory]);
 
@@ -76,6 +81,7 @@ function Workspace({ user, onSignOut }) {
      and deletes removed both here and in the table, so the two stay aligned.
      The id filter is a guard against a row appearing twice regardless. */
   const loadMoreHistory = async () => {
+    if (!user) return;
     setHistoryLoadingMore(true);
     try {
       const page = await listGenerations(history.length);
@@ -94,6 +100,7 @@ function Workspace({ user, onSignOut }) {
   /* Saving never blocks the result: the user already has their markup, so a
      failed save is reported beside the history rather than as an error. */
   const persistNew = async (record) => {
+    if (!user) return;
     try {
       const row = await saveGeneration(user.id, record);
       setCurrentId(row.id);
@@ -106,7 +113,7 @@ function Workspace({ user, onSignOut }) {
   };
 
   const persistUpdate = async (code, css, chat) => {
-    if (!currentId) return;
+    if (!user || !currentId) return;
     try {
       await updateGeneration(currentId, { code, css, chat });
       // Keep the sidebar thumbnail in step with the refined layout.
@@ -360,18 +367,42 @@ function Workspace({ user, onSignOut }) {
         {/* Saved work for the signed-in user */}
         <div className="sidebar-section">
           <div className="sidebar-section-title">My Generations</div>
-          {saveError && <p className="api-key-error" style={{ marginBottom: '0.75rem' }}>{saveError}</p>}
-          <HistoryList
-            items={history}
-            loading={historyLoading}
-            error={historyError}
-            activeId={currentId}
-            onOpen={handleOpenGeneration}
-            onDelete={handleDeleteGeneration}
-            hasMore={historyHasMore}
-            loadingMore={historyLoadingMore}
-            onLoadMore={loadMoreHistory}
-          />
+          {user ? (
+            <>
+              {saveError && <p className="api-key-error" style={{ marginBottom: '0.75rem' }}>{saveError}</p>}
+              <HistoryList
+                items={history}
+                loading={historyLoading}
+                error={historyError}
+                activeId={currentId}
+                onOpen={handleOpenGeneration}
+                onDelete={handleDeleteGeneration}
+                hasMore={historyHasMore}
+                loadingMore={historyLoadingMore}
+                onLoadMore={loadMoreHistory}
+              />
+            </>
+          ) : (
+            <div style={{
+              padding: '0.875rem',
+              background: 'var(--bg-body)',
+              borderRadius: '8px',
+              border: '1px dashed var(--border-color)',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-secondary)', fontSize: '0.825rem', lineHeight: 1.4 }}>
+                Generations are not saved in guest mode. Sign in to save your blocks and access history.
+              </p>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={onSignInClick}
+                style={{ width: '100%', fontSize: '0.825rem', padding: '0.45rem 0.75rem' }}
+              >
+                Sign In to Save Data
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Generation status */}
@@ -392,8 +423,9 @@ function Workspace({ user, onSignOut }) {
           theme={theme}
           toggleTheme={toggleTheme}
           onReset={handleReset}
-          userEmail={user.email}
+          userEmail={user?.email}
           onSignOut={onSignOut}
+          onSignInClick={onSignInClick}
         />
 
         <main className="dashboard-container">
@@ -567,13 +599,14 @@ function Workspace({ user, onSignOut }) {
 }
 
 /**
- * Auth gate: nothing in the workspace renders, and nothing is saved, until
- * there is a signed-in user. The session persists across reloads.
+ * App component supporting guest usage and optional authenticated session.
+ * Unauthenticated users can generate blocks without saving data to history.
  */
 function App() {
   const [session, setSession] = useState(null);
   const [checking, setChecking] = useState(Boolean(supabase));
   const [recovering, setRecovering] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   React.useEffect(() => {
     if (!supabase) return undefined;
@@ -584,6 +617,7 @@ function App() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, next) => {
       if (event === 'PASSWORD_RECOVERY') setRecovering(true);
       setSession(next);
+      if (next) setShowAuthModal(false);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -596,17 +630,35 @@ function App() {
     );
   }
 
-  if (!session || recovering) {
+  if (recovering) {
     return <AuthScreen recovery={recovering} onRecovered={() => setRecovering(false)} />;
   }
 
-  // Keyed by user so switching accounts starts from a clean workspace.
   return (
-    <Workspace
-      key={session.user.id}
-      user={session.user}
-      onSignOut={() => supabase.auth.signOut()}
-    />
+    <>
+      <Workspace
+        key={session?.user?.id || 'guest'}
+        user={session?.user || null}
+        onSignOut={() => supabase.auth.signOut()}
+        onSignInClick={() => setShowAuthModal(true)}
+      />
+      {showAuthModal && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 1000,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backdropFilter: 'blur(3px)',
+        }}>
+          <AuthScreen
+            onClose={() => setShowAuthModal(false)}
+          />
+        </div>
+      )}
+    </>
   );
 }
 

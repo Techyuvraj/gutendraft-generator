@@ -1,6 +1,6 @@
 import React from 'react';
 
-const DashboardHeader = ({ theme, toggleTheme, onReset, userEmail, onSignOut }) => {
+const DashboardHeader = ({ theme, toggleTheme, onReset, userEmail, onSignOut, onSignInClick }) => {
     return (
         <header className="dashboard-header">
             <div className="header-left">
@@ -21,13 +21,17 @@ const DashboardHeader = ({ theme, toggleTheme, onReset, userEmail, onSignOut }) 
                     )}
                 </button>
 
-                {userEmail && (
+                {userEmail ? (
                     <div className="header-user">
                         <span className="header-user-email" title={userEmail}>{userEmail}</span>
                         <button onClick={onSignOut} className="btn-icon" title="Sign out">
                             <span style={{ fontWeight: 500, fontSize: '0.9rem' }}>Sign out</span>
                         </button>
                     </div>
+                ) : (
+                    <button onClick={onSignInClick} className="btn-primary" style={{ padding: '0.45rem 1rem', fontSize: '0.875rem' }}>
+                        Sign In / Register
+                    </button>
                 )}
             </div>
         </header>

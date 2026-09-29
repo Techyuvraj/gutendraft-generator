@@ -33,7 +33,7 @@ const GoogleIcon = () => (
  * Full-page gate shown until a user is signed in. Also handles the
  * "set a new password" step when they arrive from a reset email.
  */
-const AuthScreen = ({ recovery = false, onRecovered }) => {
+const AuthScreen = ({ recovery = false, onRecovered, onClose }) => {
     const [mode, setMode] = useState(recovery ? 'recovery' : 'signin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -73,6 +73,7 @@ const AuthScreen = ({ recovery = false, onRecovered }) => {
             if (mode === 'signin') {
                 const { error } = await supabase.auth.signInWithPassword({ email, password });
                 if (error) throw error;
+                onClose?.();
             } else if (mode === 'signup') {
                 const { data, error } = await supabase.auth.signUp({
                     email,
@@ -84,6 +85,8 @@ const AuthScreen = ({ recovery = false, onRecovered }) => {
                 if (!data.session) {
                     setNotice('Check your inbox and click the confirmation link, then sign in.');
                     setMode('signin');
+                } else {
+                    onClose?.();
                 }
             } else if (mode === 'forgot') {
                 const { error } = await supabase.auth.resetPasswordForEmail(email, {
@@ -95,6 +98,7 @@ const AuthScreen = ({ recovery = false, onRecovered }) => {
                 const { error } = await supabase.auth.updateUser({ password });
                 if (error) throw error;
                 onRecovered?.();
+                onClose?.();
             }
         } catch (err) {
             setError(err.message || 'Something went wrong. Please try again.');
@@ -106,7 +110,29 @@ const AuthScreen = ({ recovery = false, onRecovered }) => {
     if (!isSupabaseConfigured) {
         return (
             <div className="auth-page">
-                <div className="auth-card">
+                <div className="auth-card" style={{ position: 'relative' }}>
+                    {onClose && (
+                        <button
+                            type="button"
+                            onClick={onClose}
+                            title="Close"
+                            aria-label="Close auth dialog"
+                            style={{
+                                position: 'absolute',
+                                top: '1rem',
+                                right: '1rem',
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '1.25rem',
+                                color: 'var(--text-secondary)',
+                                cursor: 'pointer',
+                                padding: '0.25rem',
+                                lineHeight: 1,
+                            }}
+                        >
+                            ✕
+                        </button>
+                    )}
                     <img src="/gutendraft.png" alt="GutenDraft" className="auth-logo" />
                     <h1 className="auth-title">Sign-in is not set up yet</h1>
                     <p className="auth-text">
@@ -126,7 +152,29 @@ const AuthScreen = ({ recovery = false, onRecovered }) => {
 
     return (
         <div className="auth-page">
-            <form className="auth-card" onSubmit={handleSubmit}>
+            <form className="auth-card" style={{ position: 'relative' }} onSubmit={handleSubmit}>
+                {onClose && (
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        title="Close"
+                        aria-label="Close auth dialog"
+                        style={{
+                            position: 'absolute',
+                            top: '1rem',
+                            right: '1rem',
+                            background: 'none',
+                            border: 'none',
+                            fontSize: '1.25rem',
+                            color: 'var(--text-secondary)',
+                            cursor: 'pointer',
+                            padding: '0.25rem',
+                            lineHeight: 1,
+                        }}
+                    >
+                        ✕
+                    </button>
+                )}
                 <img src="/gutendraft.png" alt="GutenDraft" className="auth-logo" />
                 <h1 className="auth-title">{MODES[mode].title}</h1>
 
