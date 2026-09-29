@@ -33,7 +33,7 @@ const GoogleIcon = () => (
  * Full-page gate shown until a user is signed in. Also handles the
  * "set a new password" step when they arrive from a reset email.
  */
-const AuthScreen = ({ recovery = false, onRecovered, onClose }) => {
+const AuthScreen = ({ recovery = false, onRecovered, onClose, isModal = false }) => {
     const [mode, setMode] = useState(recovery ? 'recovery' : 'signin');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -107,28 +107,19 @@ const AuthScreen = ({ recovery = false, onRecovered, onClose }) => {
         }
     };
 
+    const isModalView = isModal || Boolean(onClose);
+
     if (!isSupabaseConfigured) {
         return (
-            <div className="auth-page">
-                <div className="auth-card" style={{ position: 'relative' }}>
+            <div className={`auth-page ${isModalView ? 'is-modal' : ''}`}>
+                <div className="auth-card">
                     {onClose && (
                         <button
                             type="button"
+                            className="auth-close-btn"
                             onClick={onClose}
                             title="Close"
                             aria-label="Close auth dialog"
-                            style={{
-                                position: 'absolute',
-                                top: '1rem',
-                                right: '1rem',
-                                background: 'none',
-                                border: 'none',
-                                fontSize: '1.25rem',
-                                color: 'var(--text-secondary)',
-                                cursor: 'pointer',
-                                padding: '0.25rem',
-                                lineHeight: 1,
-                            }}
                         >
                             ✕
                         </button>
@@ -151,26 +142,15 @@ const AuthScreen = ({ recovery = false, onRecovered, onClose }) => {
     const offersGoogle = mode === 'signin' || mode === 'signup';
 
     return (
-        <div className="auth-page">
-            <form className="auth-card" style={{ position: 'relative' }} onSubmit={handleSubmit}>
+        <div className={`auth-page ${isModalView ? 'is-modal' : ''}`}>
+            <form className="auth-card" onSubmit={handleSubmit}>
                 {onClose && (
                     <button
                         type="button"
+                        className="auth-close-btn"
                         onClick={onClose}
                         title="Close"
                         aria-label="Close auth dialog"
-                        style={{
-                            position: 'absolute',
-                            top: '1rem',
-                            right: '1rem',
-                            background: 'none',
-                            border: 'none',
-                            fontSize: '1.25rem',
-                            color: 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            padding: '0.25rem',
-                            lineHeight: 1,
-                        }}
                     >
                         ✕
                     </button>

@@ -643,17 +643,14 @@ function App() {
         onSignInClick={() => setShowAuthModal(true)}
       />
       {showAuthModal && (
-        <div style={{
-          position: 'fixed',
-          inset: 0,
-          zIndex: 1000,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backdropFilter: 'blur(3px)',
-        }}>
+        <div
+          className="auth-modal-backdrop"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAuthModal(false);
+          }}
+        >
           <AuthScreen
+            isModal
             onClose={() => setShowAuthModal(false)}
           />
         </div>
